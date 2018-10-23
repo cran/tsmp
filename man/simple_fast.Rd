@@ -19,14 +19,14 @@ simple_fast(..., window_size, exclusion_zone = 1/2, verbose = 2)
 }
 \value{
 Returns a \code{SimpleMatrixProfile} object, a \code{list} with the matrix profile \code{mp}, profile index \code{pi},
-window size \code{w} and exclusion zone \code{ez}.
+number of dimensions \code{n_dim}, window size \code{w} and exclusion zone \code{ez}.
 }
 \description{
 Compute the join similarity for Sound data
 }
 \details{
 \code{verbose} changes how much information is printed by this function; \code{0} means nothing, \code{1} means
-text, \code{2} means text and sound.
+text, \code{2} adds the progress bar, \code{3} adds the finish sound.
 }
 \examples{
 w <- 30

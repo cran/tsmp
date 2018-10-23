@@ -104,27 +104,16 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
     message("Warming up parallel with ", cores, " cores.")
   }
 
-  # SNOW package
-  if (verbose > 0) {
-    progress <- function(n) utils::setTxtProgressBar(pb, n)
-  }
-  else {
-    progress <- function(n) return(invisible(TRUE))
-  }
-  opts <- list(progress = progress)
-
   cl <- parallel::makeCluster(cores)
   doSNOW::registerDoSNOW(cl)
   on.exit(parallel::stopCluster(cl))
-  if (verbose > 0) {
-    on.exit(close(pb), TRUE)
-  }
-  if (verbose > 1) {
+
+  if (verbose > 2) {
     on.exit(beep(sounds[[1]]), TRUE)
   }
 
   # seperate index into different job
-  per_work <- max(10, ceiling(num_queries / 100))
+  per_work <- max(10, min(250, ceiling(num_queries / 100)))
   n_work <- floor(num_queries / per_work)
   idx_work <- list()
 
@@ -140,10 +129,25 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
 
   tictac <- Sys.time()
 
+  # SNOW package
+  if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "STOMP [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = n_work * per_work, width = 80
+    )
 
-  if (verbose > 0) {
-    pb <- utils::txtProgressBar(min = 0, max = n_work, style = 3, width = 80)
+    prog <- function(n) {
+      if (!pb$finished) {
+        pb$tick(per_work)
+      }
+    }
   }
+  else {
+    prog <- function(n) {
+      return(invisible(TRUE))
+    }
+  }
+  opts <- list(progress = prog)
 
   i <- NULL # CRAN NOTE fix
   `%dopar%` <- foreach::`%dopar%` # CRAN NOTE fix
@@ -155,9 +159,8 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
     .inorder = FALSE,
     .multicombine = TRUE,
     .options.snow = opts,
-    # .combine = combiner,
     # .errorhandling = 'remove',
-    .export = "mass"
+    .export = c("mass", "vars")
   ) %dopar% {
     work_len <- length(idx_work[[i]])
     pro_muls <- matrix(Inf, matrix_profile_size, 1)
@@ -206,11 +209,13 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
         exc_st <- max(1, idx - exclusion_zone)
         exc_ed <- min(matrix_profile_size, idx + exclusion_zone)
         dist_pro[exc_st:exc_ed, 1] <- Inf
-        dist_pro[data_sd < vars()$eps] <- Inf
-        if (skip_location[idx] || any(query_sd[idx] < vars()$eps)) {
-          dist_pro[] <- Inf
-        }
       }
+
+      dist_pro[data_sd < vars()$eps] <- Inf
+      if (skip_location[idx] || any(query_sd[idx] < vars()$eps)) {
+        dist_pro[] <- Inf
+      }
+      dist_pro[skip_location] <- Inf
 
       if (length(args) == 1) {
         # no RMP and LMP for joins
@@ -273,7 +278,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
   tictac <- Sys.time() - tictac
 
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   return({

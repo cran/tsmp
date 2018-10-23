@@ -114,7 +114,7 @@ plot_arcs <- function(pairs, alpha = NULL, quality = 30, lwd = 15, col = c("blue
 #'
 plot.ArcCount <- function(x, data, type = c("data", "matrix"), exclusion_zone = NULL, edge_limit = NULL,
                           threshold = stats::quantile(x$cac, 0.1), main = "Arcs Discover", xlab = "index",
-                          ylab = "distance", ...) {
+                          ylab = "", ...) {
   def_par <- graphics::par(no.readonly = TRUE)
 
   if (missing(data) && !is.null(x$data)) {
@@ -126,20 +126,24 @@ plot.ArcCount <- function(x, data, type = c("data", "matrix"), exclusion_zone = 
   type <- match.arg(type)
 
   if (is.null(exclusion_zone)) {
-    exclusion_zone <- x$ez * 10
+    if (floor(x$ez * 10) < (length(x$mp) / 3)) {
+      exclusion_zone <- floor(x$ez * 10)
+    }
   }
 
   if (is.null(edge_limit)) {
-    edge_limit <- x$ez * 10
+    if (floor(x$ez * 10) < (length(x$mp) / 3)) {
+      edge_limit <- floor(x$ez * 10)
+    }
   }
 
   if (type == "data") {
     plot_data <- data
-    data_lab <- ""
+    data_lab <- ylab
     data_main <- "Data"
   } else {
     plot_data <- x$mp
-    data_lab <- ylab
+    data_lab <- "distance"
     data_main <- "Matrix Profile"
   }
 
@@ -155,24 +159,32 @@ plot.ArcCount <- function(x, data, type = c("data", "matrix"), exclusion_zone = 
   }
 
   # remove excess of arcs
-  exclusion_zone <- floor(x$w * exclusion_zone)
-  edge_limit <- floor(x$w * edge_limit)
+  if (floor(x$w * exclusion_zone) < length(x$mp) / 3) {
+    exclusion_zone <- floor(x$w * exclusion_zone)
+  }
+  if (floor(x$w * edge_limit) < length(x$mp) / 3) {
+    edge_limit <- floor(x$w * edge_limit)
+  }
   cac[1:edge_limit] <- Inf
   cac[(cac_size - edge_limit + 1):cac_size] <- Inf
 
-  ind <- which(cac < threshold)
+  ind <- which(cac <= threshold)
   pairs <- pairs[ind, ]
 
   pairdiff <- pairs[, 1] - pairs[, 2]
   ind <- which(abs(pairdiff) > exclusion_zone)
   pairs <- pairs[ind, ]
 
+  xmin <- min(pairs)
+  xmax <- max(pairs)
+  xlim <- c(xmin, xmax)
+
   graphics::layout(matrix(c(1, 2, 3), ncol = 1, byrow = TRUE))
   graphics::par(oma = c(1, 1, 3, 0), cex.lab = 1.5)
   plot_arcs(pairs, xlab = xlab, ...)
   graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
-  graphics::plot(x$cac, main = "Arc count", type = "l", xlab = xlab, ylab = "normalized count", ...)
-  graphics::plot(plot_data, main = data_main, type = "l", xlab = xlab, ylab = data_lab, ...)
+  graphics::plot(x$cac, main = "Arc count", type = "l", xlab = xlab, ylab = "normalized count", xlim = xlim, ...)
+  graphics::plot(plot_data, main = data_main, type = "l", xlab = xlab, ylab = data_lab, xlim = xlim, ...)
 
   graphics::par(def_par)
 }
@@ -248,9 +260,46 @@ plot.MultiMatrixProfile <- function(x, ylab = "distance", xlab = "index", main =
 #' @keywords hplot
 #' @name plot
 #'
+plot.SimpleMatrixProfile <- function(x, ylab = "distance", xlab = "index", main = "SiMPle Matrix Profile", ...) {
+  def_par <- graphics::par(no.readonly = TRUE)
+  allmatrix <- FALSE
+  n_dim <- ncol(x$mp)
+
+  if (!is.null(x$lmp) && !all(x$lpi == -1)) {
+    allmatrix <- TRUE
+  }
+
+  if (allmatrix == TRUE) {
+    graphics::layout(matrix(seq_len(3 * n_dim), ncol = 3, byrow = TRUE))
+  }
+  graphics::par(
+    mar = c(4.1, 4.1, 2.1, 2.1),
+    oma = c(1, 1, 3, 0), cex.lab = 1.5
+  )
+  for (i in seq_len(n_dim)) {
+    graphics::plot(x$mp[, i], type = "l", main = paste0("Matrix Profile (w = ", x$w, "; ez = ", x$ez, ")"), ylab = ylab, xlab = xlab, ...)
+  }
+  graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
+
+  if (allmatrix == TRUE) {
+    for (i in seq_len(n_dim)) {
+      graphics::plot(x$rmp[, i], type = "l", main = "Right Matrix Profile", ylab = ylab, xlab = xlab, ...)
+    }
+    for (i in seq_len(n_dim)) {
+      graphics::plot(x$lmp[, i], type = "l", main = "Left Matrix Profile", ylab = ylab, xlab = xlab, ...)
+    }
+  }
+
+  graphics::par(def_par)
+}
+
+#' @export
+#' @keywords hplot
+#' @name plot
+#'
 plot.Fluss <- function(x, data, type = c("data", "matrix"),
                        main = "Fast Low-cost Unipotent Semantic Segmentation", xlab = "index",
-                       ylab = "distance", ...) {
+                       ylab = "", ...) {
   def_par <- graphics::par(no.readonly = TRUE)
 
   if (missing(data) && !is.null(x$data)) {
@@ -263,11 +312,11 @@ plot.Fluss <- function(x, data, type = c("data", "matrix"),
 
   if (type == "data") {
     plot_data <- data
-    data_lab <- ""
+    data_lab <- ylab
     data_main <- "Data"
   } else {
     plot_data <- x$mp
-    data_lab <- ylab
+    data_lab <- "distance"
     data_main <- "Matrix Profile"
   }
 
@@ -290,12 +339,16 @@ plot.Fluss <- function(x, data, type = c("data", "matrix"),
     }
   }
 
+  xmin <- min(pairs)
+  xmax <- max(pairs)
+  xlim <- c(xmin, xmax)
+
   graphics::layout(matrix(c(1, 2, 3), ncol = 1, byrow = TRUE))
   graphics::par(oma = c(1, 1, 3, 0), cex.lab = 1.5)
   plot_arcs(pairs, xlab = xlab, ...)
   graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
-  graphics::plot(plot_data, main = data_main, type = "l", xlab = xlab, ylab = data_lab, ...)
-  graphics::plot(x$cac, main = "Arc count", type = "l", xlab = xlab, ylab = "normalized count", ...)
+  graphics::plot(plot_data, main = data_main, type = "l", xlab = xlab, ylab = data_lab, xlim = xlim, ...)
+  graphics::plot(x$cac, main = "Arc count", type = "l", xlab = xlab, ylab = "normalized count", xlim = xlim, ...)
 
   graphics::par(def_par)
 }
@@ -304,7 +357,7 @@ plot.Fluss <- function(x, data, type = c("data", "matrix"),
 #' @keywords hplot
 #' @name plot
 #'
-plot.Chain <- function(x, data, type = c("data", "matrix"), main = "Chain Discover", xlab = "index", ylab = "distance", ...) {
+plot.Chain <- function(x, data, type = c("data", "matrix"), main = "Chain Discover", xlab = "index", ylab = "", ...) {
   def_par <- graphics::par(no.readonly = TRUE)
 
   if (missing(data) && !is.null(x$data)) {
@@ -317,13 +370,14 @@ plot.Chain <- function(x, data, type = c("data", "matrix"), main = "Chain Discov
 
   if (type == "data") {
     plot_data <- data
+    plot_subtitle <- "Data"
   } else {
     plot_data <- x$mp
+    ylab <- "distance"
+    plot_subtitle <- paste0("Matrix Profile (w = ", x$w, "; ez = ", x$ez, ")")
   }
 
   chain_size <- length(x$chain$best)
-  first <- x$chain$best[1]
-  last <- x$chain$best[chain_size]
   pairs <- matrix(Inf, chain_size - 1, 2)
   matrix_profile_size <- nrow(x$mp)
 
@@ -332,12 +386,19 @@ plot.Chain <- function(x, data, type = c("data", "matrix"), main = "Chain Discov
     pairs[i, 2] <- x$chain$best[i + 1]
   }
 
+  xmin <- min(pairs)
+  xmax <- max(pairs)
+  xlim <- c(xmin, xmax)
+
   # plot matrix profile
   graphics::layout(matrix(c(1, 2, 3), ncol = 1, byrow = TRUE))
   graphics::par(oma = c(1, 1, 3, 0), cex.lab = 1.5)
   plot_arcs(pairs, xlab = xlab, ...)
   graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
-  graphics::plot(plot_data, type = "l", main = paste0("Matrix Profile (w = ", x$w, "; ez = ", x$ez, ")"), xlim = c(first - x$w, last + x$w), xlab = xlab, ylab = ylab, ...)
+  graphics::plot(plot_data,
+    type = "l", main = plot_subtitle,
+    xlim = xlim, xlab = xlab, ylab = ylab, ...
+  )
   graphics::abline(v = x$chain$best, col = 1:chain_size, lwd = 2)
 
   # blank plot
@@ -362,7 +423,7 @@ plot.Chain <- function(x, data, type = c("data", "matrix"), main = "Chain Discov
 #' @keywords hplot
 #' @name plot
 #'
-plot.Motif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "MOTIF Discover", xlab = "index", ylab = "distance", ...) {
+plot.Motif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "MOTIF Discover", xlab = "index", ylab = "", ...) {
   def_par <- graphics::par(no.readonly = TRUE)
 
   if (missing(data) && !is.null(x$data)) {
@@ -375,8 +436,11 @@ plot.Motif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "MO
 
   if (type == "data") {
     plot_data <- data
+    plot_subtitle <- "Data"
   } else {
     plot_data <- x$mp
+    ylab <- "distance"
+    plot_subtitle <- paste0("Matrix Profile (w = ", x$w, "; ez = ", x$ez, ")")
   }
 
   motifs <- x$motif$motif_idx
@@ -393,7 +457,7 @@ plot.Motif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "MO
   ))
   # plot matrix profile
   graphics::par(oma = c(1, 1, 3, 0), cex.lab = 1.5)
-  graphics::plot(plot_data, type = "l", main = paste0("Matrix Profile (w = ", x$w, "; ez = ", x$ez, ")"), xlab = xlab, ylab = ylab)
+  graphics::plot(plot_data, type = "l", main = plot_subtitle, xlab = xlab, ylab = ylab)
   graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
   graphics::abline(v = unlist(motifs), col = rep(1:n_motifs, each = 2), lwd = 2)
   # plot motifs
@@ -423,7 +487,7 @@ plot.Motif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "MO
 #' @keywords hplot
 #' @name plot
 #'
-plot.MultiMotif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "Multidimensional MOTIF Discover", xlab = "index", ylab = "distance", ...) {
+plot.MultiMotif <- function(x, data, type = c("data", "matrix"), ncol = 3, main = "Multidimensional MOTIF Discover", xlab = "index", ylab = "", ...) {
   def_par <- graphics::par(no.readonly = TRUE)
 
   if (missing(data) && !is.null(x$data)) {
@@ -436,8 +500,11 @@ plot.MultiMotif <- function(x, data, type = c("data", "matrix"), ncol = 3, main 
 
   if (type == "data") {
     plot_data <- data
+    plot_subtitle <- "Data"
   } else {
     plot_data <- x$mp
+    ylab <- "distance"
+    plot_subtitle <- paste0("Matrix Profile ", i, " (w = ", x$w, "; ez = ", x$ez, ")")
   }
 
   n_dim <- x$n_dim
@@ -469,10 +536,17 @@ plot.MultiMotif <- function(x, data, type = c("data", "matrix"), ncol = 3, main 
     mar = c(4.1, 4.1, 2.1, 2.1),
     oma = c(1, 1, 3, 0), cex.lab = 1.5
   )
-  for (i in seq_len(n_dim)) {
-    graphics::plot(plot_data[, i], type = "l", main = paste0("Matrix Profile ", i, " (w = ", x$w, "; ez = ", x$ez, ")"), xlab = xlab, ylab = ylab)
+  for (i in seq_len(length(dim_idx))) {
+    graphics::plot(plot_data[, i],
+      type = "l",
+      main = plot_subtitle,
+      xlab = xlab, ylab = ylab
+    )
+
     midx <- dim_idx[[i]]
-    graphics::abline(v = motifs[midx], col = midx, lwd = 2)
+    if (!is.null(midx)) {
+      graphics::abline(v = motifs[midx], col = midx, lwd = 2)
+    }
   }
 
   graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
@@ -499,6 +573,45 @@ plot.MultiMotif <- function(x, data, type = c("data", "matrix"), ncol = 3, main 
 
     graphics::lines(motif_data[[1]], col = i, lwd = 2)
   }
+
+  graphics::par(def_par)
+}
+
+#' @export
+#' @keywords hplot
+#' @name plot
+#'
+
+plot.Salient <- function(x, data, main = "Salient Subsections", xlab = "index", ylab = "", ...) {
+  def_par <- graphics::par(no.readonly = TRUE)
+
+  if (missing(data) && !is.null(x$data)) {
+    data <- x$data[[1]]
+  } else {
+    is.null(data) # check data presence before plotting anything
+  }
+
+  plot_data <- data
+  plot_subtitle <- "Data"
+  y_min <- min(data)
+  y_max <- max(data)
+
+  mds <- salient_mds(x, data)
+  idxs <- sort(x$salient$indexes[, 1])
+
+  # layout: matrix profile on top, motifs below.
+  graphics::layout(matrix(c(1, 1, 1, 0, 2, 0), ncol = 3, byrow = TRUE))
+  # plot matrix profile
+  graphics::par(oma = c(1, 1, 3, 0), cex.lab = 1.5)
+  graphics::plot(plot_data, type = "l", main = plot_subtitle, xlab = xlab, ylab = ylab)
+  graphics::mtext(text = main, font = 2, cex = 1.5, outer = TRUE)
+
+  graphics::rect(idxs, y_min,
+    xright = idxs + x$w, y_max, border = NA,
+    col = grDevices::adjustcolor("blue", alpha.f = 0.1)
+  )
+
+  graphics::plot(mds, main = "MDS")
 
   graphics::par(def_par)
 }

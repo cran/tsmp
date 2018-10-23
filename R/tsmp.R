@@ -23,8 +23,7 @@
 #'
 #'   Currently there is a new algorithm that I'll not explain further here. It is called [scrimp()],
 #'   and is as fast as [stomp()], and have the Anytime property. This algorithm is implemented in
-#'   this package, but stills experimental, so expect minor discrepancies compared to previous
-#'   algorithms.
+#'   this package, but still waiting for an article publication.
 #'
 #'   Further, there is the [mstomp()] that computes a multidimensional Matrix Profile that allows to
 #'   meaningful MOTIF discovery in Multivariate Time Series. And [simple_fast()] that also handles
@@ -37,7 +36,7 @@
 #'     \item{exclusion_zone}{Is used to avoid trivial matches; if a query data is provided
 #'       (join similarity), this parameter is ignored.}
 #'     \item{verbose}{Changes how much information is printed by this function; `0` means nothing,
-#'     `1` means text, `2` means text and sound.}
+#'     `1` means text, `2` adds the progress bar, `3` adds the finish sound.}
 #'     \item{n_workers}{number of threads for parallel computing (except `simple_fast` and `scrimp`).
 #'     If the value is 2 or more, the '_par' version of the algorithm will be used.}
 #'   }
@@ -183,7 +182,8 @@ tsmp <- function(..., window_size, exclusion_zone = 1 / 2, mode = c("stomp", "st
   )
 
   if (.keep_data) {
-    result$data <- list(...)
+    args <- list(...)
+    result$data <- lapply(args, as.matrix)
   }
 
   return(result)

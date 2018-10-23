@@ -2,7 +2,7 @@
 % Please edit documentation in R/salient.R
 \name{salient_subsequences}
 \alias{salient_subsequences}
-\title{Retrieve salient subsequences from a dataset}
+\title{Framework for retrieve salient subsequences from a dataset}
 \usage{
 salient_subsequences(.mp, data, n_bits = 8, n_cand = 10,
   exclusion_zone = NULL, verbose = 2)
@@ -12,7 +12,7 @@ salient_subsequences(.mp, data, n_bits = 8, n_cand = 10,
 
 \item{data}{the data used to build the Matrix Profile, if not embedded.}
 
-\item{n_bits}{an \code{int}. Number of bits for MDL discretization. (Default is \code{8}).}
+\item{n_bits}{an \code{int} or \code{vector} of \code{int}. Number of bits for MDL discretization. (Default is \code{8}).}
 
 \item{n_cand}{an \code{int}. number of candidate when picking the subsequence in each iteration.
 (Default is \code{10}).}
@@ -32,12 +32,21 @@ retrieves the most relevant subsequences using Minimal Description Length (MDL) 
 }
 \details{
 \code{verbose} changes how much information is printed by this function; \code{0} means nothing,
-\code{1} means text, \code{2} means text and sound.
+\code{1} means text, \code{2} adds the progress bar, \code{3} adds the finish sound.
 }
 \examples{
+# toy example
 data <- mp_toy_data$data[, 1]
 mp <- tsmp(data, window_size = 30, verbose = 0)
 mps <- salient_subsequences(mp, data, verbose = 0)
+
+\dontrun{
+# full example
+data <- mp_meat_data$sub$data
+w <- mp_meat_data$sub$sub_len
+mp <- tsmp(data, window_size = w, verbose = 2, n_workers = 6)
+mps <- salient_subsequences(mp, data, n_bits = c(4, 6, 8), verbose = 2)
+}
 
 }
 \references{

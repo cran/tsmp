@@ -1,7 +1,7 @@
 README
 ================
 Francisco Bischoff
-\- 10 Sep 2018
+\- 23 Oct 2018
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -9,7 +9,7 @@ Francisco Bischoff
 
 # Time Series with Matrix Profile
 
-[![Packagist](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://choosealicense.com/licenses/mit)
+[![Packagist](https://img.shields.io/badge/license-GPL--3-brightgreen.svg)](https://choosealicense.com/licenses/gpl-3.0/)
 [![lifecycle](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://www.tidyverse.org/lifecycle/#stable)
 [![CRAN
 version](http://www.r-pkg.org/badges/version/tsmp)](https://cran.r-project.org/package=tsmp)
@@ -32,8 +32,8 @@ This package allows you to use the Matrix Profile concept as a toolkit.
 
 This package provides:
 
-  - Algorithms to build a Matrix Profile: STAMP, STOMP, SCRIMP
-    (experimental), SIMPLE and MSTOMP.
+  - Algorithms to build a Matrix Profile: STAMP, STOMP, SCRIMP++, SIMPLE
+    and MSTOMP.
   - Algorithms for MOTIF search for Unidimensional and Multidimensional
     Matrix Profiles.
   - Algorithm for Chains search for Unidimensional Matrix Profile.
@@ -50,25 +50,31 @@ This package provides:
 matrix <- tsmp(data, window_size = 30) %>% find_motif(n_motifs = 3) %>% plot()
 
 # SDTS still have a unique way to work:
-model <- sdts_train(data, labels, windows); result <- sdts_predict(model, data, round(mean(windows)))
+model <- sdts_train(data, labels, windows)
+result <- sdts_predict(model, data, round(mean(windows)))
 ```
 
 Please refer to the [User
 Manual](https://franzbischoff.github.io/tsmp/reference/) for more
 details.
 
-Please be welcome to suggest improvements.
+Please be welcome to suggest
+improvements.
 
-### Performance on an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz
+### Performance on an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz using a random walk dataset
 
-|                | Elapsed Time | Data size | Window size | Cores |
-| -------------- | :----------: | :-------: | :---------: | :---: |
-| `stomp_par()`  |    45.17s    |   55000   |     150     |   8   |
-| `stomp()`      |    76.68s    |   55000   |     150     |   1   |
-| `mstomp_par()` |   113.03s    |   55000   |     150     |   8   |
-| `mstomp()`     |   238.81s    |   55000   |     150     |   1   |
-| `stamp_par()`  |   852.11s    |   55000   |     150     |   8   |
-| `stamp()`      |   2862.79s   |   55000   |     150     |   1   |
+``` r
+set.seed(2018)
+data <- cumsum(sample(c(-1, 1), 40000, TRUE))
+```
+
+|               | Elapsed Time | Data size | Window size | Threads |
+| ------------- | :----------: | :-------: | :---------: | :-----: |
+| `stomp_par()` |    52.72s    |   40000   |    1000     |    8    |
+| `scrimp()`    |    92.44s    |   40000   |    1000     |    1    |
+| `stomp()`     |   133.16s    |   40000   |    1000     |    1    |
+| `stamp_par()` |   140.25s    |   40000   |    1000     |    8    |
+| `stamp()`     |   262.03s    |   40000   |    1000     |    1    |
 
 ## Installation
 
@@ -85,7 +91,7 @@ devtools::install_github("franzbischoff/tsmp")
 
   - STAMP (single and multi-thread versions)
   - STOMP (single and multi-thread versions)
-  - SCRIMP (single-thread, still experimental)
+  - SCRIMP (single-thread, not for AB-joins yet)
   - Time Series Chains
   - Multivariate STOMP (mSTOMP)
   - Multivariate MOTIF Search (from mSTOMP)
@@ -94,20 +100,19 @@ devtools::install_github("franzbischoff/tsmp")
   - FLUSS (Fast Low-cost Unipotent Semantic Segmentation)
   - SiMPle-Fast (Fast Similarity Matrix Profile for Music Analysis and
     Exploration)
-  - Annotation vectors (e.g.: Stop-word MOTIF bias, Actionability bias)
+  - Annotation vectors (e.g., Stop-word MOTIF bias, Actionability bias)
   - FLUSS Arc Plot and SiMPle Arc Plot
   - Misc:
       - MASS v2.0
       - Fast moving average
       - Fast moving SD
 
-## Road map
+## Roadmap
 
-  - MOTIFs under Uniform Scaling
   - Exact Detection of Variable Length Motifs
   - Profile-Based Shapelet Discovery
   - GPU-STOMP
-  - Real-time version of previous algorithms (STAMPI, FLOSS, etc)
+  - Real-time version of previous algorithms (STAMPI, FLOSS, etc.)
   - MASS Extensions (ADP, WQ, QwG)
 
 ## Other projects with Matrix Profile
@@ -121,5 +126,5 @@ devtools::install_github("franzbischoff/tsmp")
 ## Code of Conduct
 
 Please note that this project is released with a [Contributor Code of
-Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree
-to abide by its terms.
+Conduct](CODE_OF_CONDUCT.md). By participating in this project, you
+agree to abide by its terms.

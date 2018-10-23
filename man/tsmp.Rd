@@ -66,8 +66,7 @@ consecutive iterations. This approach reduced the time to compute the Matrix Pro
 
 Currently there is a new algorithm that I'll not explain further here. It is called \code{\link[=scrimp]{scrimp()}},
 and is as fast as \code{\link[=stomp]{stomp()}}, and have the Anytime property. This algorithm is implemented in
-this package, but stills experimental, so expect minor discrepancies compared to previous
-algorithms.
+this package, but still waiting for an article publication.
 
 Further, there is the \code{\link[=mstomp]{mstomp()}} that computes a multidimensional Matrix Profile that allows to
 meaningful MOTIF discovery in Multivariate Time Series. And \code{\link[=simple_fast]{simple_fast()}} that also handles
@@ -80,7 +79,7 @@ Some parameters are global across the algorithms:
 \item{exclusion_zone}{Is used to avoid trivial matches; if a query data is provided
 (join similarity), this parameter is ignored.}
 \item{verbose}{Changes how much information is printed by this function; \code{0} means nothing,
-\code{1} means text, \code{2} means text and sound.}
+\code{1} means text, \code{2} adds the progress bar, \code{3} adds the finish sound.}
 \item{n_workers}{number of threads for parallel computing (except \code{simple_fast} and \code{scrimp}).
 If the value is 2 or more, the '_par' version of the algorithm will be used.}
 }

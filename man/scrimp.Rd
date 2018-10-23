@@ -2,10 +2,10 @@
 % Please edit documentation in R/scrimp.R
 \name{scrimp}
 \alias{scrimp}
-\title{Anytime univariate SCRIMP algorithm (experimental)}
+\title{Anytime univariate SCRIMP++ algorithm}
 \usage{
 scrimp(..., window_size, exclusion_zone = 1/2, verbose = 2,
-  s_size = Inf)
+  s_size = Inf, pre_scrimp = 1/4)
 }
 \arguments{
 \item{...}{a \code{matrix} or a \code{vector}.}
@@ -19,6 +19,9 @@ scrimp(..., window_size, exclusion_zone = 1/2, verbose = 2,
 
 \item{s_size}{a \code{numeric}. for anytime algorithm, represents the size (in observations) the
 random calculation will occur (default is \code{Inf}).}
+
+\item{pre_scrimp}{a \code{numeric}. Set the pre-scrimp step based on \code{window_size}, if \code{0}, disables pre-scrimp.
+(default is \code{1/4}).}
 }
 \value{
 Returns a \code{MatrixProfile} object, a \code{list} with the matrix profile \code{mp}, profile index \code{pi}
@@ -38,7 +41,8 @@ estimation, semantic segmentation, visualization, rule discovery, clustering etc
 SCRIMP computes the Matrix Profile and Profile Index in such manner that it can be stopped before
 its complete calculation and return the best so far results allowing ultra-fast approximate
 solutions. \code{verbose} changes how much information is printed by this function; \code{0} means nothing,
-\code{1} means text, \code{2} means text and sound. \code{exclusion_zone} is used to avoid  trivial matches.
+\code{1} means text, \code{2} adds the progress bar, \code{3} adds the finish sound. \code{exclusion_zone} is used to
+avoid  trivial matches.
 }
 \examples{
 mp <- scrimp(mp_toy_data$data[1:200, 1], window_size = 30, verbose = 0)

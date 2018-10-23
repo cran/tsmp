@@ -2,7 +2,7 @@
 % Please edit documentation in R/sdts-train.R
 \name{sdts_train}
 \alias{sdts_train}
-\title{Scalable Dictionary learning for Time Series (SDTS) training function}
+\title{Framework for Scalable Dictionary learning for Time Series (SDTS) training function}
 \usage{
 sdts_train(data, label, window_size, beta = 1, pat_max = Inf,
   parallel = TRUE, verbose = 2)
@@ -35,8 +35,8 @@ algorithm will learn the switching points (even better) and try to predict using
 }
 \details{
 \code{beta} is used to balance F-score towards recall (\code{>1}) or precision (\code{<1}). \code{verbose} changes
-how much information is printed by this function; \code{0} means nothing, \code{1} means text, \code{2} means
-text and sound.
+how much information is printed by this function; \code{0} means nothing, \code{1} means text, \code{2} adds the
+progress bar, \code{3} adds the finish sound.
 }
 \examples{
 # This is a fast toy example and results are useless. For a complete result, run the code inside
@@ -49,13 +49,13 @@ te_data <- mp_test_data$test$data[subs]
 te_label <- mp_test_data$test$label[subs]
 model <- sdts_train(tr_data, tr_label, w, verbose = 0)
 predict <- sdts_predict(model, te_data, round(mean(w)))
-sdts_score(te_label, predict, 1)
+sdts_score(predict, te_label, 1)
 
 \dontrun{
 windows <- c(110, 220, 330)
 model <- sdts_train(mp_test_data$train$data, mp_test_data$train$label, windows)
 predict <- sdts_predict(model, mp_test_data$test$data, round(mean(windows)))
-sdts_score(mp_test_data$test$label, predict, 1)
+sdts_score(predict, mp_test_data$test$label, 1)
 }
 }
 \references{

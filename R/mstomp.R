@@ -13,7 +13,7 @@
 #'
 #' Although this functions handles Multivariate Time Series, it can also be used to handle
 #' Univariate Time Series. `verbose` changes how much information is printed by this function; `0`
-#' means nothing, `1` means text, `2` means text and sound.
+#' means nothing, `1` means text, `2` adds the progress bar, `3` adds the finish sound.
 #'
 #' @param data a `matrix` of `numeric`, where each column is a time series. Accepts `vector` (see
 #'   details), `list` and `data.frame` too.
@@ -129,11 +129,13 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
   data[is.na(data)] <- 0
   data[is.infinite(data)] <- 0
 
-  if (verbose > 0) {
-    pb <- utils::txtProgressBar(min = 0, max = matrix_profile_size, style = 3, width = 80)
-    on.exit(close(pb))
-  }
   if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "mSTOMP [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = matrix_profile_size, width = 80
+    )
+  }
+  if (verbose > 2) {
     on.exit(beep(sounds[[1]]), TRUE)
   }
 
@@ -166,8 +168,8 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
 
   for (i in 1:matrix_profile_size) {
     # compute the distance profile
-    if (verbose > 0) {
-      utils::setTxtProgressBar(pb, i)
+    if (verbose > 1) {
+      pb$tick()
     }
 
     query <- as.matrix(data[i:(i + window_size - 1), ])
@@ -288,7 +290,7 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
   tictac <- Sys.time() - tictac
 
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   if (n_dim > 1) {

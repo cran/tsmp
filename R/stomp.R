@@ -8,8 +8,8 @@
 #' series motif discovery, time series joins, shapelet discovery (classification), density
 #' estimation, semantic segmentation, visualization, rule discovery, clustering etc. `verbose`
 #' changes how much information is printed by this function; `0` means nothing, `1` means text, `2`
-#' means text and sound. `exclusion_zone` is used to avoid  trivial matches; if a query data is
-#' provided (join similarity), this parameter is ignored.
+#' adds the progress bar, `3` adds the finish sound. `exclusion_zone` is used to avoid  trivial
+#' matches; if a query data is provided (join similarity), this parameter is ignored.
 #'
 #' @param ... a `matrix` or a `vector`. If a second time series is supplied it will be a join matrix
 #'   profile.
@@ -108,11 +108,14 @@ stomp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
   query[is.na(query)] <- 0
   query[is.infinite(query)] <- 0
 
-  if (verbose > 0) {
-    pb <- utils::txtProgressBar(min = 0, max = num_queries, style = 3, width = 80)
-    on.exit(close(pb))
-  }
   if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "STOMP [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = num_queries, width = 80
+    )
+  }
+
+  if (verbose > 2) {
     on.exit(beep(sounds[[1]]), TRUE)
   }
 
@@ -190,11 +193,13 @@ stomp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
       exc_st <- max(1, i - exclusion_zone)
       exc_ed <- min(matrix_profile_size, i + exclusion_zone)
       distance_profile[exc_st:exc_ed, 1] <- Inf
-      distance_profile[data_sd < vars()$eps] <- Inf
-      if (skip_location[i] || any(query_sd[i] < vars()$eps)) {
-        distance_profile[] <- Inf
-      }
     }
+
+    distance_profile[data_sd < vars()$eps] <- Inf
+    if (skip_location[i] || any(query_sd[i] < vars()$eps)) {
+      distance_profile[] <- Inf
+    }
+    distance_profile[skip_location] <- Inf
 
     if (length(args) == 1) {
       # no RMP and LMP for joins
@@ -215,15 +220,15 @@ stomp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
     matrix_profile[ind] <- distance_profile[ind]
     profile_index[which(ind)] <- i
 
-    if (verbose > 0) {
-      utils::setTxtProgressBar(pb, i)
+    if (verbose > 1) {
+      pb$tick()
     }
   }
 
   tictac <- Sys.time() - tictac
 
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   return({

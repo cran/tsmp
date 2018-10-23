@@ -90,19 +90,36 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
     message("Warming up parallel with ", cores, " cores.")
   }
 
-  cols <- min(num_queries, 100)
+  cols <- min(num_queries, 200)
 
   lines <- 0:(ceiling(ssize / cols) - 1)
-  if (verbose > 0) {
-    pb <- utils::txtProgressBar(min = 0, max = max(lines), style = 3, width = 80)
+  if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "STAMP [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = num_queries, width = 80
+    )
   }
+
+  # SNOW package
+  if (verbose > 1) {
+    prog <- function(n) {
+      if (!pb$finished) {
+        pb$tick()
+      }
+    }
+  }
+  else {
+    prog <- function(n) {
+      return(invisible(TRUE))
+    }
+  }
+  opts <- list(progress = prog)
+
   cl <- parallel::makeCluster(cores)
   doSNOW::registerDoSNOW(cl)
   on.exit(parallel::stopCluster(cl))
-  if (verbose > 0) {
-    on.exit(close(pb), TRUE)
-  }
-  if (verbose > 1) {
+
+  if (verbose > 2) {
     on.exit(beep(sounds[[1]]), TRUE)
   }
   # anytime must return the result always
@@ -129,10 +146,9 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
       # .verbose = FALSE,
       .inorder = FALSE,
       .multicombine = TRUE,
-      # .options.snow = opts,
-      # .combine = combiner,
+      .options.snow = opts,
       # .errorhandling = 'remove',
-      .export = "mass"
+      .export = c("mass", "vars")
     ) %dopar% {
       res <- NULL
 
@@ -147,11 +163,13 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
           exc_st <- max(1, i - exclusion_zone)
           exc_ed <- min(matrix_profile_size, i + exclusion_zone)
           distance_profile[exc_st:exc_ed] <- Inf
-          distance_profile[pre$data_sd < vars()$eps] <- Inf
-          if (skip_location[i] || any(pre$query_sd[i] < vars()$eps)) {
-            distance_profile[] <- Inf
-          }
         }
+
+        distance_profile[pre$data_sd < vars()$eps] <- Inf
+        if (skip_location[i] || any(pre$query_sd[i] < vars()$eps)) {
+          distance_profile[] <- Inf
+        }
+        distance_profile[skip_location] <- Inf
 
         res <- list(dp = distance_profile, i = i)
       }
@@ -184,16 +202,12 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
         profile_index[which(ind)] <- curr
       }
     }
-
-    if (verbose > 0) {
-      utils::setTxtProgressBar(pb, k)
-    }
   }
 
   tictac <- Sys.time() - tictac
 
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   # return() is at on.exit() function

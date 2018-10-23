@@ -2,7 +2,7 @@
 #'
 #' @details
 #' `verbose` changes how much information is printed by this function; `0` means nothing, `1` means
-#' text, `2` means text and sound.
+#' text, `2` adds the progress bar, `3` adds the finish sound.
 #'
 #' @param ... a `matrix` of `numeric`, where each column is a time series. Accepts `list` and
 #'   `data.frame` too. If a second time series is supplied it will be a join matrix profile.
@@ -12,7 +12,7 @@
 #' @param verbose an `int`. See details. (Default is `2`).
 #'
 #' @return Returns a `SimpleMatrixProfile` object, a `list` with the matrix profile `mp`, profile index `pi`,
-#' window size `w` and exclusion zone `ez`.
+#' number of dimensions `n_dim`, window size `w` and exclusion zone `ez`.
 #'
 #' @export
 #' @references * Silva D, Yeh C, Batista G, Keogh E. Simple: Assessing Music Similarity Using
@@ -129,11 +129,13 @@ simple_fast <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
   matrix_profile <- rep(Inf, matrix_profile_size)
   profile_index <- rep(0, matrix_profile_size)
 
-  if (verbose > 0) {
-    pb <- utils::txtProgressBar(min = 0, max = matrix_profile_size, style = 3, width = 80)
-    on.exit(close(pb))
-  }
   if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "SiMPle [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = matrix_profile_size, width = 80
+    )
+  }
+  if (verbose > 2) {
     on.exit(beep(sounds[[1]]), TRUE)
   }
 
@@ -143,6 +145,10 @@ simple_fast <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
   data_sumx2 <- pre_data$sumx2
   query_window <- query[1:window_size, ]
   res_data <- mass_simple(data_fft, query_window, data_size, window_size, data_sumx2)
+
+  if (verbose > 1) {
+    pb$tick()
+  }
 
   pre_query <- mass_simple_pre(query, query_size, window_size = window_size)
   query_fft <- pre_query$data_fft
@@ -170,8 +176,8 @@ simple_fast <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
   for (i in 2:matrix_profile_size) {
 
     # compute the distance profile
-    if (verbose > 0) {
-      utils::setTxtProgressBar(pb, i)
+    if (verbose > 1) {
+      pb$tick()
     }
 
     data_window <- data[i:(i + window_size - 1), ]
@@ -207,13 +213,14 @@ simple_fast <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2) {
   tictac <- Sys.time() - tictac
 
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   obj <- list(
-    mp = matrix_profile, pi = profile_index,
+    mp = as.matrix(matrix_profile), pi = as.matrix(profile_index),
     rmp = NULL, rpi = NULL,
     lmp = NULL, lpi = NULL,
+    n_dim = n_dim,
     w = window_size,
     ez = ez
   )

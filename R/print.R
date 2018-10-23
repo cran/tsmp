@@ -56,6 +56,34 @@ print.MultiMatrixProfile <- function(x, ...) {
   }
 }
 
+#' Prints a SiMPle Matrix Profile
+#'
+#' @param x a TSMP object of class `SimpleMatrixProfile`.
+#' @param ... additional arguments ignored.
+#' @export
+#' @keywords internal
+#' @noRd
+
+print.SimpleMatrixProfile <- function(x, ...) {
+  cat("SiMPle Matrix Profile\n")
+  cat("---------------------\n")
+
+  cat("Profile size =", nrow(x$mp), "\n")
+  cat("Dimensions =", x$n_dim, "\n")
+  cat("Window size =", x$w, "\n")
+  cat("Exclusion zone =", round(x$w * x$ez + vars()$eps), "\n")
+
+  if (!is.null(x$data)) {
+    set <- length(x$data)
+    obs <- nrow(x$data[[1]])
+    dim <- ncol(x$data[[1]])
+    cat(
+      "Contains", set, ifelse(set > 1, "sets", "set"), "of data with", obs, "observations and", dim,
+      ifelse(dim > 1, "dimensions", "dimension"), "\n"
+    )
+  }
+}
+
 #' Prints a CAC profile
 #'
 #' @param x a TSMP object of class `ArcCount`.
@@ -178,4 +206,27 @@ print.MultiMotif <- function(x, ...) {
   cat("Motifs founded =", motifs_len, "\n")
   cat("Motifs indexes =", x$motif$motif_idx, "\n")
   cat("Motifs dimensions =", dims, "\n")
+}
+
+#' Prints Salient subsequences summary
+#'
+#' @param x a TSMP object of class `Salient`.
+#' @param ... additional arguments ignored.
+#' @export
+#' @keywords internal
+#' @noRd
+print.Salient <- function(x, ...) {
+  if (any(class(x) %in% "MatrixProfile")) {
+    print.MatrixProfile(x, ...)
+  } else if (any(class(x) %in% "MultiMatrixProfile")) {
+    print.MultiMatrixProfile(x, ...)
+  }
+
+  cat("\nSalient Subsequences\n")
+  cat("----------------------\n")
+
+  salient_len <- nrow(x$salient$indexes)
+
+  cat("Subsequences founded =", salient_len, "\n")
+  cat("Bitsizes tested =", x$salient$bits, "\n")
 }

@@ -1,4 +1,4 @@
-#' Scalable Dictionary learning for Time Series (SDTS) training function
+#' Framework for Scalable Dictionary learning for Time Series (SDTS) training function
 #'
 #' This function trains a model that uses a dictionary to predict state changes. Differently from
 #' [fluss()], it doesn't look for semantic changes (that may be several), but for binary states like
@@ -8,8 +8,8 @@
 #'
 #' @details
 #' `beta` is used to balance F-score towards recall (`>1`) or precision (`<1`). `verbose` changes
-#' how much information is printed by this function; `0` means nothing, `1` means text, `2` means
-#' text and sound.
+#' how much information is printed by this function; `0` means nothing, `1` means text, `2` adds the
+#' progress bar, `3` adds the finish sound.
 #'
 #' @param data a `vector` of `numeric`. Time series.
 #' @param label a `vector` of `logical`. Annotations.
@@ -38,17 +38,17 @@
 #' te_label <- mp_test_data$test$label[subs]
 #' model <- sdts_train(tr_data, tr_label, w, verbose = 0)
 #' predict <- sdts_predict(model, te_data, round(mean(w)))
-#' sdts_score(te_label, predict, 1)
+#' sdts_score(predict, te_label, 1)
 #'
 #' \dontrun{
 #' windows <- c(110, 220, 330)
 #' model <- sdts_train(mp_test_data$train$data, mp_test_data$train$label, windows)
 #' predict <- sdts_predict(model, mp_test_data$test$data, round(mean(windows)))
-#' sdts_score(mp_test_data$test$label, predict, 1)
+#' sdts_score(predict, mp_test_data$test$label, 1)
 #' }
 sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parallel = TRUE, verbose = 2) {
 
-  # transform data list into matrix
+  # transform data list into matrix ----
   if (is.matrix(data) || is.data.frame(data)) {
     if (is.data.frame(data)) {
       data <- as.matrix(data)
@@ -67,7 +67,7 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
 
   n_window_size <- length(window_size)
 
-  # check input
+  # check input ----
   for (i in 1:n_window_size) {
     if (window_size[i] > (data_size / 2)) {
       stop("Error: Time series is too short relative to desired window size.")
@@ -77,7 +77,7 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     }
   }
 
-  # extract positive segment
+  # extract positive segment ----
   label_diff <- diff(c(0, label, 0))
   pos_st <- which(label_diff == 1) + 1
   pos_ed <- which(label_diff == -1)
@@ -92,17 +92,21 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
   }
 
   pos <- unlist(pos)
-  pos_alt_st <- which(is.infinite(pos)) + 1
+  pos_alt_st <- list()
+  for (i in 1:n_window_size) {
+    pos_alt_st[[i]] <- which(is.infinite(pos)) + 1
+    max_pos_idx <- pos_alt_st[[i]] > (length(pos) - window_size[i] + 1)
+    pos_alt_st[[i]][max_pos_idx] <- (length(pos) - window_size[i] + 1)
+  }
+
   pos_alt_ed <- which(is.infinite(pos)) - 1
   pos_alt_ed <- c(pos_alt_ed[-1], length(pos))
 
-  if (pos_alt_st[length(pos_alt_st)] > (length(pos) - min(window_size) + 1)) {
-    pos_alt_st[length(pos_alt_st)] <- (length(pos) - min(window_size) + 1)
-  }
 
-  # run matrix profile on concatenated positive segment
+
+  # run matrix profile on concatenated positive segment ----
   if (verbose > 0) {
-    message("stage 1 of 3, compute matrix profile ...")
+    message("Stage 1 of 3, compute matrix profile...")
   }
 
   mat_pro <- list()
@@ -116,7 +120,7 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     mat_pro[[i]] <- mp$mp
   }
 
-  # extract candidate
+  # extract candidate ----
   candi <- list()
   candi_idx <- list()
 
@@ -126,11 +130,15 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     candi_dist <- rep(0, n_pos)
 
     for (j in 1:n_pos) {
-      temp <- mat_pro[[i]][pos_alt_st[j]:max(pos_alt_st[j], (pos_alt_ed[j] - window_size[i] + 1), na.rm = TRUE)]
+      temp <- mat_pro[[i]][pos_alt_st[[i]][j]:max(pos_alt_st[[i]][j], (pos_alt_ed[j] - window_size[i] + 1), na.rm = TRUE)]
       rlt_idx <- which.min(temp)
+      if (length(temp[rlt_idx]) == 0) {
+        print("Zero")
+      }
+
       candi_dist[j] <- temp[rlt_idx]
 
-      alt_idx <- pos_alt_st[j] + rlt_idx - 1
+      alt_idx <- pos_alt_st[[i]][j] + rlt_idx - 1
       candi[[i]][[j]] <- pos[alt_idx:(alt_idx + window_size[i] - 1)]
       candi_idx[[i]][j] <- pos_st[j] + rlt_idx - 1
     }
@@ -139,7 +147,8 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     candi_idx[[i]] <- candi_idx[[i]][candi_dist$ix]
   }
 
-  # evaluate each candidate
+  ### CHECK oK
+  # evaluate each candidate ----
   candi_score <- list()
   candi_thold <- list()
   candi_pro <- list()
@@ -147,14 +156,16 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
   tictac <- Sys.time()
 
   if (verbose > 0) {
-    message("stage 2 of 3, evaluate individual candidate ...")
+    message("Stage 2 of 3, evaluate individual candidates...")
   }
 
-  if (verbose > 0) {
-    pb <- utils::txtProgressBar(min = 0, max = n_window_size * n_pos, style = 3, width = 80)
-    on.exit(close(pb))
-  }
   if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "SDTS-Train [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = n_window_size * n_pos, width = 80
+    )
+  }
+  if (verbose > 2) {
     on.exit(beep(sounds[[1]]), TRUE)
   }
 
@@ -179,15 +190,15 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
       candi_thold[[i]][j] <- golden$thold
       candi_score[[i]][j] <- golden$score
 
-      if (verbose > 0) {
-        utils::setTxtProgressBar(pb, ((i - 1) * n_pos + j))
+      if (verbose > 1) {
+        pb$tick()
       }
     }
   }
 
   tictac <- Sys.time() - tictac
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   candi_pro_exp <- list()
@@ -214,13 +225,13 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
   candi_pro <- candi_pro[order]
   candi <- candi[order]
 
-  # check max pattern allowed
+  # check max pattern allowed ----
   pat_max <- min(pat_max, floor(n_pos * 0.5))
   if (pat_max < 2) {
     return(list(score = candi_score[1], score_hist = candi_score[1], pattern = list(candi[[1]]), thold = candi_thold[1]))
   }
-
-  # check combined pattern
+  # CHECK OK
+  # check combined pattern ----
   max_window_size <- max(window_size)
   max_pro_len <- length(data) - min(window_size) + 1
   best_pat <- rep(FALSE, n_pos * n_window_size)
@@ -230,12 +241,14 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
   tictac <- Sys.time()
 
   if (verbose > 0) {
-    message("stage 3 of 3, evaluate combination of candidates ...")
+    message("Stage 3 of 3, evaluate combination of candidates...")
   }
 
-  if (verbose > 0) {
-    close(pb)
-    pb <- utils::txtProgressBar(min = 0, max = pat_max * n_window_size * n_pos, style = 3, width = 80)
+  if (verbose > 1) {
+    pb <- progress::progress_bar$new(
+      format = "SDTS-Train [:bar] :percent at :tick_rate it/s, elapsed: :elapsed, eta: :eta",
+      clear = FALSE, total = pat_max * n_window_size * n_pos, width = 80
+    )
   }
 
   for (i in 1:pat_max) {
@@ -264,7 +277,8 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
       for (k in seq_len(length(pro_cur))) {
         pro_max <- max(max(pro_cur[[k]][!is.infinite(pro_cur[[k]])]), pro_max)
         pro_min <- min(min(pro_cur[[k]]), pro_min)
-        pro_cur[[k]][exc_mask_cur] <- Inf
+        # exc_mask_cur is trimmed because if not, will insert NA in pro_cur
+        pro_cur[[k]][exc_mask_cur[seq_len(length(pro_cur[[k]]))]] <- Inf
       }
 
       thold_cur[[j]] <- candi_thold[best_pat_cur]
@@ -290,20 +304,23 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
           score <- gold$score
         }
 
-        if ((iter > 200) || (mean(thold_cur[[j]] - thold_old) < ((pro_max - pro_min) * 0.001))) {
+        if (iter > 200) {
           break
+        }
+
+        if (!anyNA(c(thold_cur[[j]], thold_old, pro_max, pro_min))) {
+          if ((mean(thold_cur[[j]] - thold_old) < ((pro_max - pro_min) * 0.001))) {
+            break
+          }
         }
       }
 
       pat_score[j] <- score
       exc_mask_cur[exc_st[j]:exc_ed[j]] <- FALSE
 
-      if (verbose > 0) {
-        utils::setTxtProgressBar(pb, ((i - 1) * (n_pos * n_window_size) + j))
+      if (verbose > 1) {
+        pb$tick()
       }
-    }
-    if (verbose > 0) {
-      utils::setTxtProgressBar(pb, ((i - 1) * (n_pos * n_window_size) + (n_pos * n_window_size)))
     }
 
     best_candi_idx <- which.max(pat_score)
@@ -319,13 +336,13 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     }
   }
 
-  if (verbose > 0) {
-    utils::setTxtProgressBar(pb, (pat_max * n_pos * n_window_size))
+  if (verbose > 1) {
+    pb$update(ratio = 1)
   }
 
   tictac <- Sys.time() - tictac
   if (verbose > 0) {
-    message(sprintf("\nFinished in %.2f %s", tictac, units(tictac)))
+    message(sprintf("Finished in %.2f %s", tictac, units(tictac)))
   }
 
   score_hist <- score_hist[!is.infinite(score_hist)]

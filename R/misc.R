@@ -37,7 +37,7 @@ fast_movsd <- function(data, window_size) {
   # we will need the squared elements
   data_sqr <- data^2
 
-  b <- matrix(1, 1, window_size)
+  b <- rep(1, window_size)
   s <- sqrt((stats::filter(data_sqr, b, sides = 1) - (stats::filter(data, b, sides = 1)^2) * (1 / window_size)) / (window_size - 1))
 
   # restore the scale factor that was used before to normalize the data
@@ -48,7 +48,7 @@ fast_movsd <- function(data, window_size) {
   return(s[!is.na(s)])
 }
 
-#' Fast implementation of moving average using filter
+#' Fast implementation of moving average and
 #'
 #' @inheritParams fast_movsd
 #'
@@ -63,6 +63,34 @@ fast_movavg <- function(data, window_size) {
   return(data_mean[!is.na(data_mean)])
 }
 
+#' Fast implementation of moving average and moving standard deviation using cumsum
+#'
+#' @inheritParams fast_movsd
+#'
+#' @return Returns a `list` with `avg` and `sd` `vector`s
+#' @keywords internal
+#' @noRd
+
+fast_avg_sd <- function(data, window_size) {
+  data_len <- length(data)
+
+  data[(data_len + 1):(window_size + data_len)] <- 0
+
+  data_cum <- cumsum(data)
+  data2_cum <- cumsum(data^2)
+  data2_sum <- data2_cum[window_size:data_len] - c(0, data2_cum[1:(data_len - window_size)])
+  data_sum <- data_cum[window_size:data_len] - c(0, data_cum[1:(data_len - window_size)])
+
+  data_mean <- data_sum / window_size
+
+  data_sd2 <- (data2_sum / window_size) - (data_mean^2)
+  data_sd2 <- Re(data_sd2)
+  data_sd2 <- pmax(data_sd2, 0)
+  data_sd <- sqrt(data_sd2)
+
+  return(list(avg = data_mean, sd = data_sd))
+}
+
 #' Population SD, as R always calculate with n-1 (sample), here we fix it
 #'
 #' @inheritParams fast_movsd
@@ -73,6 +101,10 @@ fast_movavg <- function(data, window_size) {
 #'
 std <- function(data) {
   sdx <- stats::sd(data)
+
+  if (is.na(sdx)) {
+    return(1.0)
+  }
 
   if (sdx == 0) {
     return(sdx)
@@ -171,6 +203,10 @@ golden_section <- function(dist_pro, label, pos_st, pos_ed, beta, window_size) {
   d_thold <- a_thold + (b_thold - a_thold) / golden_ratio
   tol <- max((b_thold - a_thold) * 0.001, 0.0001)
 
+  if (anyNA(c(c_thold, d_thold, tol))) {
+    return(list(thold = NA, score = 0))
+  }
+
   while (abs(c_thold - d_thold) > tol) {
     c_score <- compute_f_meas(label, pos_st, pos_ed, dist_pro, c_thold, window_size, beta)
     d_score <- compute_f_meas(label, pos_st, pos_ed, dist_pro, d_thold, window_size, beta)
@@ -209,11 +245,15 @@ golden_section <- function(dist_pro, label, pos_st, pos_ed, beta, window_size) {
 
 golden_section_2 <- function(dist_pro, thold, label, pos_st, pos_ed, beta, window_size, fit_idx) {
   golden_ratio <- (1 + sqrt(5)) / 2
-  a_thold <- min(dist_pro[[fit_idx]], na.rm = TRUE)
-  b_thold <- max(dist_pro[[fit_idx]][!is.infinite(dist_pro[[fit_idx]])], na.rm = TRUE)
+  a_thold <- min(dist_pro[[fit_idx]])
+  b_thold <- max(dist_pro[[fit_idx]][!is.infinite(dist_pro[[fit_idx]])])
   c_thold <- b_thold - (b_thold - a_thold) / golden_ratio
   d_thold <- a_thold + (b_thold - a_thold) / golden_ratio
   tol <- max((b_thold - a_thold) * 0.001, 0.0001)
+
+  if (anyNA(c(c_thold, d_thold, tol))) {
+    return(list(thold = NA, score = 0))
+  }
 
   while (abs(c_thold - d_thold) > tol) {
     c_thold_combined <- thold
@@ -644,6 +684,60 @@ vars <- function() {
 }
 
 # Misc -------------------------------------------------------------------------------------------
+
+#' Set/changes the data included in TSMP object.
+#'
+#' This may be useful if you want to include the data lately or remove the included data (set as `NULL`).
+#'
+#' @param .mp a TSMP object.
+#' @param data a `matrix` (for one series) or a `list` of matrices (for two series).
+#'
+#' @return Returns silently the original TSMP object with changed data.
+#' @export
+#'
+#' @examples
+#' mp <- tsmp(mp_toy_data$data[1:200, 1], window_size = 30, verbose = 0)
+#' mp <- set_data(mp, NULL)
+set_data <- function(.mp, data) {
+  if (!is.null(data)) {
+    if (!is.list(data)) {
+      data <- list(data)
+    }
+
+    data <- lapply(data, as.matrix)
+
+    # data should be this size
+    data_size <- (nrow(.mp$mp) + .mp$w - 1)
+
+    for (i in seq_len(length(data))) {
+      if (nrow(data[[i]]) != data_size) {
+        warning("WARNING: data size is ", nrow(data[[i]]), ", but should be ", data_size, " for this matrix profile.")
+      }
+    }
+  }
+
+  .mp$data <- data
+
+  invisible(.mp)
+}
+
+#' Get the data included in a TSMP object, if any.
+#'
+#' @param .mp a TSMP object.
+#'
+#' @return Returns the data as `matrix`. If there is more than one series, returns a `list`.
+#' @export
+#'
+#' @examples
+#' mp <- tsmp(mp_toy_data$data[1:200, 1], window_size = 30, verbose = 0)
+#' get_data(mp)
+get_data <- function(.mp) {
+  if (length(.mp$data) == 1) {
+    return(as.matrix(.mp$data[[1]]))
+  } else {
+    return(as.matrix(.mp$data))
+  }
+}
 
 #' Add class on front or move it to front if already exists
 #'

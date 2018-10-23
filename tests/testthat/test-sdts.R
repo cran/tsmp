@@ -4,13 +4,19 @@ if (skip_on_cran()) {
 
   test_that("Errors", {
     # big window size
-    expect_error(sdts_train(mp_test_data$train$data[1:100], mp_test_data$train$label[1:110], window_size = 5000), regexp = "Time series is too short")
+    expect_error(sdts_train(mp_test_data$train$data[1:100], mp_test_data$train$label[1:110],
+      window_size = 5000
+    ), "Time series is too short")
 
     # small window size
-    expect_error(sdts_train(mp_test_data$train$data[1:100], mp_test_data$train$label[1:100], window_size = 2), regexp = "window_size")
+    expect_error(sdts_train(mp_test_data$train$data[1:100], mp_test_data$train$label[1:100],
+      window_size = 2
+    ), "window_size")
 
     # unknown data type
-    expect_error(sdts_train(table(mp_test_data$train$data[1:100]), mp_test_data$train$label[1:100], window_size = 110), regexp = "Unknown type")
+    expect_error(sdts_train(table(mp_test_data$train$data[1:100]), mp_test_data$train$label[1:100],
+      window_size = 110
+    ), "Unknown type")
   })
 
   w <- c(110, 220, 330)
@@ -21,7 +27,7 @@ if (skip_on_cran()) {
   te_label <- mp_test_data$test$label[subs]
   model <- sdts_train(tr_data, tr_label, w, verbose = 0)
   predict <- sdts_predict(model, te_data, round(mean(w)))
-  pred_score <- sdts_score(te_label, predict, 1)
+  pred_score <- sdts_score(predict, te_label, 1)
 
   test_that("SDTS Train", {
     expect_equal(round(model$score, 3), 0.889)
