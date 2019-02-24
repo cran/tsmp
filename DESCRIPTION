@@ -1,7 +1,7 @@
 Package: tsmp
 Type: Package
 Title: Time Series with Matrix Profile
-Version: 0.3.2
+Version: 0.3.4
 Authors@R: c(
     person("Francisco", "Bischoff", email = "fbischoff@med.up.pt", role = c("aut", "cre"),
     comment = c(ORCID = "https://orcid.org/0000-0002-5301-8672")),
@@ -24,15 +24,15 @@ Imports: audio, doSNOW, parallel, foreach, progress, magrittr
 Encoding: UTF-8
 Language: en-US
 LazyData: true
-RoxygenNote: 6.1.0.9000
+RoxygenNote: 6.1.1
 NeedsCompilation: no
 Suggests: spelling, testthat, knitr, rmarkdown, gdtools, vdiffr
 VignetteBuilder: knitr
-Packaged: 2018-10-23 22:07:36 UTC; Franz
+Packaged: 2019-02-24 01:44:22 UTC; Franz
 Author: Francisco Bischoff [aut, cre] (<https://orcid.org/0000-0002-5301-8672>),
   Michael Yeh [res, ccp, ctb] (<https://orcid.org/0000-0002-9807-2963>),
   Diego Silva [res, ccp, ctb] (<https://orcid.org/0000-0002-5184-9413>),
   Yan Zhu [res, ccp, ctb] (<https://orcid.org/0000-0002-5952-2108>),
   Hoang Dau [res, ccp, ctb] (<https://orcid.org/0000-0003-2439-5185>)
 Repository: CRAN
-Date/Publication: 2018-10-23 22:29:39 UTC
+Date/Publication: 2019-02-24 18:10:08 UTC
