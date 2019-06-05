@@ -8,6 +8,7 @@
 \alias{plot.MultiMatrixProfile}
 \alias{plot.SimpleMatrixProfile}
 \alias{plot.Fluss}
+\alias{plot.Floss}
 \alias{plot.Chain}
 \alias{plot.Discord}
 \alias{plot.Motif}
@@ -21,20 +22,24 @@
   xlab = "index", ylab = "", ...)
 
 \method{plot}{Valmod}(x, ylab = "distance", xlab = "index",
-  main = "Valmod Matrix Profile", ...)
+  main = "Valmod Matrix Profile", data = FALSE, ...)
 
 \method{plot}{MatrixProfile}(x, ylab = "distance", xlab = "index",
-  main = "Unidimensional Matrix Profile", ...)
+  main = "Unidimensional Matrix Profile", data = FALSE, ...)
 
 \method{plot}{MultiMatrixProfile}(x, ylab = "distance", xlab = "index",
   main = "Multidimensional Matrix Profile", ...)
 
 \method{plot}{SimpleMatrixProfile}(x, ylab = "distance",
-  xlab = "index", main = "SiMPle Matrix Profile", ...)
+  xlab = "index", main = "SiMPle Matrix Profile", data = FALSE, ...)
 
 \method{plot}{Fluss}(x, data, type = c("data", "matrix"),
   main = "Fast Low-cost Unipotent Semantic Segmentation",
   xlab = "index", ylab = "", ...)
+
+\method{plot}{Floss}(x, data, type = c("data", "matrix"),
+  main = "Fast Low-cost Online Semantic Segmentation", xlab = "index",
+  ylab = "", ...)
 
 \method{plot}{Chain}(x, data, type = c("data", "matrix"),
   main = "Chain Discover", xlab = "index", ylab = "", ...)

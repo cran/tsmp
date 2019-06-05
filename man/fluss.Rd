@@ -4,7 +4,7 @@
 \alias{fluss}
 \title{Fast Low-cost Unipotent Semantic Segmentation (FLUSS)}
 \usage{
-fluss(.mp, num_segments, exclusion_zone = NULL)
+fluss(.mp, num_segments = 1, exclusion_zone = NULL)
 }
 \arguments{
 \item{.mp}{a TSMP object of class \code{MatrixProfile}.}
@@ -40,7 +40,9 @@ Website: \url{https://sites.google.com/site/onlinesemanticsegmentation/}
 Website: \url{http://www.cs.ucr.edu/~eamonn/MatrixProfile.html}
 }
 \seealso{
-Other Semantic Segmentations: \code{\link{fluss_cac}},
-  \code{\link{fluss_extract}}, \code{\link{fluss_score}}
+Other Semantic Segmentations: \code{\link{floss_cac}},
+  \code{\link{floss_extract}}, \code{\link{floss}},
+  \code{\link{fluss_cac}}, \code{\link{fluss_extract}},
+  \code{\link{fluss_score}}
 }
 \concept{Semantic Segmentations}

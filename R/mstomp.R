@@ -45,17 +45,17 @@
 #'
 #' @examples
 #' # using all dimensions
-#' mp <- mstomp(mp_toy_data$data[1:200, ], 30, verbose = 0)
-#' 
+#' mp <- mstomp(mp_toy_data$data[1:150, ], 30, verbose = 0)
+#'
 #' # using threads
-#' mp <- mstomp_par(mp_toy_data$data[1:200, ], 30, verbose = 0)
+#' mp <- mstomp_par(mp_toy_data$data[1:150, ], 30, verbose = 0)
 #' \dontrun{
 #' # force using dimensions 1 and 2
 #' mp <- mstomp(mp_toy_data$data[1:200, ], 30, must_dim = c(1, 2))
 #' # exclude dimensions 2 and 3
-#' mp <- mstomp(mp_toy_data$data[1:200, ], 30, exc_dim = c(2, 3))
+#' mp2 <- mstomp(mp_toy_data$data[1:200, ], 30, exc_dim = c(2, 3))
 #' }
-#' 
+#'
 mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_dim = NULL, exc_dim = NULL) {
   # get various length
   ez <- exclusion_zone # store original
@@ -90,26 +90,26 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
     # transform data into 1-col matrix
     data <- as.matrix(data) # just to be uniform
   } else {
-    stop("Error: Unknown type of data. Must be: matrix, data.frame, vector or list.")
+    stop("Unknown type of data. Must be: matrix, data.frame, vector or list.")
   }
 
   matrix_profile_size <- data_size - window_size + 1
 
   # check input
   if (window_size > data_size / 2) {
-    stop("Error: Time series is too short relative to desired window size.")
+    stop("Time series is too short relative to desired window size.")
   }
   if (window_size < 4) {
-    stop("Error: `window_size` must be at least 4.")
+    stop("`window_size` must be at least 4.")
   }
   if (any(must_dim > n_dim)) {
-    stop("Error: `must_dim` must be less then the total dimension.")
+    stop("`must_dim` must be less then the total dimension.")
   }
   if (any(exc_dim > n_dim)) {
-    stop("Error: `exc_dim` must be less then the total dimension.")
+    stop("`exc_dim` must be less then the total dimension.")
   }
   if (length(intersect(must_dim, exc_dim)) > 0) {
-    stop("Error: The same dimension is presented in both the exclusion dimension and must have dimension.")
+    stop("The same dimension is presented in both the exclusion dimension and must have dimension.")
   }
 
   # check skip position
@@ -139,28 +139,27 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
   }
 
   # initialization
-  data_fft <- matrix(0, (window_size + data_size), n_dim)
+  nn <- vector(mode = "list", length = 3)
   data_mean <- matrix(0, matrix_profile_size, n_dim)
   data_sd <- matrix(0, matrix_profile_size, n_dim)
   first_product <- matrix(0, matrix_profile_size, n_dim)
 
+
   for (i in 1:n_dim) {
-    nnpre <- mass_pre(data[, i], data_size, window_size = window_size)
-    data_fft[, i] <- nnpre$data_fft
-    data_mean[, i] <- nnpre$data_mean
-    data_sd[, i] <- nnpre$data_sd
-    mstomp <- mass(data_fft[, i], data[1:window_size, i], data_size, window_size, data_mean[, i], data_sd[, i], data_mean[1, i], data_sd[1, i])
-    first_product[, i] <- mstomp$last_product
+    nn[[i]] <- dist_profile(data[, i], data[, i], window_size = window_size)
+    first_product[, i] <- nn[[i]]$last_product
+    data_mean[, i] <- nn[[i]]$par$data_mean
+    data_sd[, i] <- nn[[i]]$par$data_sd
   }
 
   tictac <- Sys.time()
   # compute the matrix profile
-  matrix_profile <- matrix(0, matrix_profile_size, n_dim)
-  profile_index <- matrix(0, matrix_profile_size, n_dim)
+  matrix_profile <- matrix(Inf, matrix_profile_size, n_dim)
+  profile_index <- matrix(-Inf, matrix_profile_size, n_dim)
   left_matrix_profile <- matrix(Inf, matrix_profile_size, n_dim)
-  left_profile_index <- matrix(-1, matrix_profile_size, n_dim)
+  left_profile_index <- matrix(-Inf, matrix_profile_size, n_dim)
   right_matrix_profile <- matrix(Inf, matrix_profile_size, n_dim)
-  right_profile_index <- matrix(-1, matrix_profile_size, n_dim)
+  right_profile_index <- matrix(-Inf, matrix_profile_size, n_dim)
   distance_profile <- matrix(0, matrix_profile_size, n_dim)
   last_product <- matrix(0, matrix_profile_size, n_dim)
   drop_value <- matrix(0, 1, n_dim)
@@ -171,17 +170,16 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
       pb$tick()
     }
 
-    query <- as.matrix(data[i:(i + window_size - 1), ])
+    query_window <- as.matrix(data[i:(i + window_size - 1), ])
 
     if (i == 1) {
       for (j in 1:n_dim) {
-        mstomp <- mass(data_fft[, j], query[, j], data_size, window_size, data_mean[, j], data_sd[, j], data_mean[i, j], data_sd[i, j])
-        distance_profile[, j] <- mstomp$distance_profile
-        last_product[, j] <- mstomp$last_product
+        distance_profile[, j] <- nn[[j]]$distance_profile
+        last_product[, j] <- nn[[j]]$last_product
       }
     } else {
       rep_drop_value <- kronecker(matrix(1, matrix_profile_size - 1, 1), t(drop_value))
-      rep_query <- kronecker(matrix(1, matrix_profile_size - 1, 1), t(query[window_size, ]))
+      rep_query <- kronecker(matrix(1, matrix_profile_size - 1, 1), t(query_window[window_size, ]))
 
       last_product[2:(data_size - window_size + 1), ] <- last_product[1:(data_size - window_size), ] -
         data[1:(data_size - window_size), ] * rep_drop_value +
@@ -195,7 +193,7 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
     }
 
     distance_profile <- Re(distance_profile)
-    drop_value <- query[1, ]
+    drop_value <- query_window[1, ]
 
     # apply exclusion zone
     exc_st <- max(1, i - exclusion_zone)
@@ -304,6 +302,7 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
       exc = exc_dim
     )
     class(obj) <- "MultiMatrixProfile"
+    attr(obj, "join") <- FALSE
   } else {
     obj <- list(
       mp = matrix_profile, pi = profile_index,
@@ -313,6 +312,7 @@ mstomp <- function(data, window_size, exclusion_zone = 1 / 2, verbose = 2, must_
       ez = ez
     )
     class(obj) <- "MatrixProfile"
+    attr(obj, "join") <- FALSE
   }
 
   return(obj)

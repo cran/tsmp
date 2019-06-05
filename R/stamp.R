@@ -21,6 +21,8 @@
 #' @param verbose an `int`. See details. (Default is `2`).
 #' @param s_size a `numeric`. for anytime algorithm, represents the size (in observations) the
 #'   random calculation will occur (default is `Inf`).
+#' @param weight a `vector` of `numeric` or `NULL` with the same length of the `window_size`. This is
+#' a MASS extension to weight the query.
 #'
 #' @return Returns a `MatrixProfile` object, a `list` with the matrix profile `mp`, profile index `pi`
 #'   left and right matrix profile `lmp`, `rmp` and profile index `lpi`, `rpi`, window size `w` and
@@ -41,7 +43,7 @@
 #'
 #' @examples
 #' mp <- stamp(mp_toy_data$data[1:200, 1], window_size = 30, verbose = 0)
-#' 
+#'
 #' # using threads
 #' mp <- stamp_par(mp_toy_data$data[1:200, 1], window_size = 30, verbose = 0)
 #' \dontrun{
@@ -52,15 +54,18 @@
 #' # join similarity
 #' mp <- stamp(ref_data, query_data, window_size = 30, s_size = round(nrow(query_data) * 0.1))
 #' }
-#' 
-stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size = Inf) {
-  args <- list(...)
-  data <- args[[1]]
-  if (length(args) > 1) {
-    query <- args[[2]]
+#'
+stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size = Inf, weight = NULL) {
+  argv <- list(...)
+  argc <- length(argv)
+  data <- argv[[1]]
+  if (argc > 1 && !is.null(argv[[2]])) {
+    query <- argv[[2]]
     exclusion_zone <- 0 # don't use exclusion zone for joins
+    join <- TRUE
   } else {
     query <- data
+    join <- FALSE
   }
 
   # transform data into matrix
@@ -72,7 +77,7 @@ stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size 
       data <- t(data)
     }
   } else {
-    stop("Error: Unknown type of data. Must be: a column matrix or a vector.")
+    stop("Unknown type of data. Must be: a column matrix or a vector.")
   }
 
   if (is.vector(query)) {
@@ -82,7 +87,7 @@ stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size 
       query <- t(query)
     }
   } else {
-    stop("Error: Unknown type of query. Must be: a column matrix or a vector.")
+    stop("Unknown type of query. Must be: a column matrix or a vector.")
   }
 
   ez <- exclusion_zone # store original
@@ -93,13 +98,13 @@ stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size 
   num_queries <- query_size - window_size + 1
 
   if (query_size > data_size) {
-    stop("Error: Query must be smaller or the same size as reference data.")
+    stop("Query must be smaller or the same size as reference data.")
   }
   if (window_size > query_size / 2) {
-    stop("Error: Time series is too short relative to desired window size.")
+    stop("Time series is too short relative to desired window size.")
   }
   if (window_size < 4) {
-    stop("Error: `window_size` must be at least 4.")
+    stop("`window_size` must be at least 4.")
   }
 
   # check skip position
@@ -118,9 +123,9 @@ stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size 
   query[is.infinite(query)] <- 0
 
   matrix_profile <- matrix(Inf, matrix_profile_size, 1)
-  profile_index <- matrix(-1, matrix_profile_size, 1)
+  profile_index <- matrix(-Inf, matrix_profile_size, 1)
 
-  if (length(args) > 1) {
+  if (join) {
     # no RMP and LMP for joins
     left_matrix_profile <- right_matrix_profile <- NULL
     left_profile_index <- right_profile_index <- NULL
@@ -156,18 +161,20 @@ stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size 
       ez = ez
     )
     class(obj) <- "MatrixProfile"
+    attr(obj, "join") <- join
     obj
   }), TRUE)
 
-  pre <- mass_pre(data, data_size, query, query_size, window_size = window_size)
+  nn <- NULL
 
   for (i in order) {
     j <- j + 1
 
-    nn <- mass(
-      pre$data_fft, query[i:(i + window_size - 1)], data_size, window_size, pre$data_mean,
-      pre$data_sd, pre$query_mean[i], pre$query_sd[i]
-    )
+    if (is.null(weight)) {
+      nn <- dist_profile(data, query, nn, window_size = window_size, index = i)
+    } else {
+      nn <- dist_profile(data, query, nn, window_size = window_size, index = i, method = "weighted", weight = weight)
+    }
 
     distance_profile <- Re(sqrt(nn$distance_profile))
 
@@ -178,14 +185,14 @@ stamp <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size 
       distance_profile[exc_st:exc_ed] <- Inf
     }
 
-    distance_profile[pre$data_sd < vars()$eps] <- Inf
-    if (skip_location[i] || any(pre$query_sd[i] < vars()$eps)) {
+    distance_profile[nn$var$data_sd < vars()$eps] <- Inf
+    if (skip_location[i] || any(nn$var$query_sd[i] < vars()$eps)) {
       distance_profile[] <- Inf
     }
     distance_profile[skip_location] <- Inf
 
     # anytime version
-    if (length(args) == 1) {
+    if (!join) {
       # no RMP and LMP for joins
       # left matrix_profile
       ind <- (distance_profile[i:matrix_profile_size] < left_matrix_profile[i:matrix_profile_size])

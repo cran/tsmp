@@ -125,11 +125,36 @@ print.ArcCount <- function(x, ...) {
     print.MultiMatrixProfile(x, ...)
   }
 
-  cat("\nArc Count\n")
-  cat("---------\n")
+  if (!is.null(x$cac_final)) {
+    cat("\nArc Count - Online\n")
+    cat("------------------\n")
+  } else {
+    cat("\nArc Count\n")
+    cat("---------\n")
+  }
 
   cat("Profile size =", length(x$cac), "\n")
   cat("Minimum normalized count =", signif(min(x$cac), 2), "at index", which.min(x$cac), "\n")
+}
+
+#' Prints a FLOSS
+#'
+#' @param x a TSMP object of class `Floss`.
+#' @param ... additional arguments ignored.
+#' @export
+#' @keywords internal
+#' @noRd
+print.Floss <- function(x, ...) {
+  if (any(class(x) %in% "ArcCount")) {
+    print.ArcCount(x, ...)
+  }
+
+  cat("\nFloss\n")
+  cat("-----\n")
+
+  cat("Segments =", length(x$floss), "\n")
+  cat("Segmentation indexes =", x$floss, "\n")
+  cat("Segmentation thld values =", x$floss_vals, "\n")
 }
 
 #' Prints a FLUSS
@@ -276,15 +301,20 @@ print.MultiMotif <- function(x, ...) {
   cat("\nMultidimensional Motif\n")
   cat("----------------------\n")
 
-  motifs_len <- length(x$motif$motif_idx)
+  pairs_len <- length(x$motif$motif_idx)
+  cat("Motif pairs founded =", pairs_len, "\n")
+
+  indexes <- NULL
+  for (i in seq_len(pairs_len)) {
+    indexes <- paste0(indexes, "[", paste(x$motif$motif_idx[[i]], collapse = ", "), "] ")
+  }
+  cat("Motif pairs indexes =", indexes, "\n")
 
   dims <- NULL
-  for (i in seq_len(motifs_len)) {
+  for (i in seq_len(pairs_len)) {
     dims <- paste0(dims, "[", paste(x$motif$motif_dim[[i]], collapse = ", "), "] ")
   }
-  cat("Motifs founded =", motifs_len, "\n")
-  cat("Motifs indexes =", x$motif$motif_idx, "\n")
-  cat("Motifs dimensions =", dims, "\n")
+  cat("Motifs pairs dimensions =", dims, "\n")
 }
 
 #' Prints Salient subsequences summary

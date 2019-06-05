@@ -61,7 +61,7 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     # transform data into 1-col matrix
     data <- as.matrix(data) # just to be uniform
   } else {
-    stop("Error: Unknown type of data. Must be: matrix, data.frame, vector or list.")
+    stop("Unknown type of data. Must be: matrix, data.frame, vector or list.")
   }
 
   n_window_size <- length(window_size)
@@ -69,10 +69,10 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
   # check input ----
   for (i in 1:n_window_size) {
     if (window_size[i] > (data_size / 2)) {
-      stop("Error: Time series is too short relative to desired window size.")
+      stop("Time series is too short relative to desired window size.")
     }
     if (window_size[i] < 4) {
-      stop("Error: `window_size` must be at least 4.")
+      stop("`window_size` must be at least 4.")
     }
   }
 
@@ -174,11 +174,9 @@ sdts_train <- function(data, label, window_size, beta = 1, pat_max = Inf, parall
     candi_pro[[i]] <- list()
     candi_window_size[[i]] <- rep(1, n_pos) * window_size[i]
 
-    pre <- mass_pre(data, data_size, window_size = window_size[i])
-
     for (j in 1:n_pos) {
-      dist_pro <- mass(pre$data_fft, candi[[i]][[j]], data_size, window_size[i], pre$data_mean, pre$data_sd, mean(candi[[i]][[j]]), std(candi[[i]][[j]]))
-      dist_pro <- Re(sqrt(dist_pro$distance_profile))
+      nn <- dist_profile(data, candi[[i]][[j]], window_size = window_size[i])
+      dist_pro <- Re(sqrt(nn$distance_profile))
       candi_pro[[i]][[j]] <- dist_pro
       exc_st <- max(1, candi_idx[[i]][j] - window_size[i])
       exc_ed <- min(length(dist_pro), candi_idx[[i]][j] + window_size[i])

@@ -7,7 +7,7 @@
 tsmp(..., window_size, exclusion_zone = 1/2, mode = c("stomp", "stamp",
   "simple", "mstomp", "scrimp", "valmod"), verbose = 2, n_workers = 1,
   s_size = Inf, must_dim = NULL, exc_dim = NULL, heap_size = 50,
-  .keep_data = TRUE)
+  paa = 1, .keep_data = TRUE)
 }
 \arguments{
 \item{...}{a \code{matrix} or a \code{vector}. If a second time series is supplied it will be a join matrix
@@ -35,6 +35,8 @@ See details.}
 details.}
 
 \item{heap_size}{an \code{int}. (Default is \code{50}). Size of the distance profile heap buffer.}
+
+\item{paa}{an \code{int}. (Default is \code{1}). Factor of PAA reduction (2 == half of size)}
 
 \item{.keep_data}{a \code{logical}. (Default is \code{TRUE}). Keeps the data embedded to resultant object.}
 }
@@ -99,7 +101,7 @@ If the value is 2 or more, the '_par' version of the algorithm will be used.}
 mp <- tsmp(mp_toy_data$data[1:200, 1], window_size = 30, verbose = 0)
 
 # parallel with [stomp_par()]
-mp <- tsmp(mp_toy_data$data[1:200, 1], window_size = 30, n_workers = 2, verbose = 0)
+mp <- tsmp(mp_test_data$train$data[1:1000, 1], window_size = 30, n_workers = 2, verbose = 0)
 
 # Anytime STAMP
 mp <- tsmp(mp_toy_data$data[1:200, 1], window_size = 30, mode = "stamp", s_size = 50, verbose = 0)

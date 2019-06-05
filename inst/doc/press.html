@@ -12,7 +12,7 @@
 
 <meta name="author" content="Francisco Bischoff" />
 
-<meta name="date" content="2019-02-24" />
+<meta name="date" content="2019-06-05" />
 
 <title>Time Series with Matrix Profile</title>
 
@@ -37,7 +37,7 @@ a.sourceLine { text-indent: -1em; padding-left: 1em; }
 pre.numberSource a.sourceLine
   { position: relative; left: -4em; }
 pre.numberSource a.sourceLine::before
-  { content: attr(data-line-number);
+  { content: attr(title);
     position: relative; left: -1em; text-align: right; vertical-align: baseline;
     border: none; pointer-events: all; display: inline-block;
     -webkit-touch-callout: none; -webkit-user-select: none;
@@ -291,6 +291,9 @@ code > span.al { color: #ff0000; font-weight: bold; }
 code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
 </style>
 
+
+
+
 </head>
 
 <body>
@@ -299,8 +302,8 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 
 
 <h1 class="title toc-ignore">Time Series with Matrix Profile</h1>
-<h4 class="author"><em>Francisco Bischoff</em></h4>
-<h4 class="date"><em>2019-02-24</em></h4>
+<h4 class="author">Francisco Bischoff</h4>
+<h4 class="date">2019-06-05</h4>
 
 
 
@@ -333,8 +336,8 @@ Figure 1: Distance Matrix and its Matrix Profile.
 </ul>
 <div id="performance-on-an-intelr-coretm-i7-7700-cpu-3.60ghz-using-a-random-walk-dataset" class="section level3">
 <h3>Performance on an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz using a random walk dataset</h3>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">set.seed</span>(<span class="dv">2018</span>)</a>
-<a class="sourceLine" id="cb1-2" data-line-number="2">data &lt;-<span class="st"> </span><span class="kw">cumsum</span>(<span class="kw">sample</span>(<span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>), <span class="dv">40000</span>, <span class="ot">TRUE</span>))</a></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">set.seed</span>(<span class="dv">2018</span>)</a>
+<a class="sourceLine" id="cb1-2" title="2">data &lt;-<span class="st"> </span><span class="kw">cumsum</span>(<span class="kw">sample</span>(<span class="kw">c</span>(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>), <span class="dv">40000</span>, <span class="ot">TRUE</span>))</a></code></pre></div>
 <table>
 <thead>
 <tr class="header">

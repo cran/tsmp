@@ -6,7 +6,7 @@
 \usage{
 plot_arcs(pairs, alpha = NULL, quality = 30, lwd = 15,
   col = c("blue", "orange"), main = "Arc Plot", ylab = "",
-  xlab = "Profile Index", ...)
+  xlab = "Profile Index", xmin = NULL, xmax = NULL, ...)
 }
 \arguments{
 \item{pairs}{a \code{matrix} with 2 columns.}
@@ -26,6 +26,10 @@ arc, respectively. Accepts one color.}
 \item{ylab}{a \code{string}. (Default is \code{""}). Y label.}
 
 \item{xlab}{a \code{string}. (Default is \code{"Profile Index"}). X label.}
+
+\item{xmin}{an \code{int}. (Default is \code{NULL}). Set the minimum value of x axis.}
+
+\item{xmax}{an \code{int}. (Default is \code{NULL}). Set the maximum value of x axis.}
 
 \item{...}{further arguments to be passed to \code{\link[=plot]{plot()}}. See \code{\link[=par]{par()}}.}
 }

@@ -1,7 +1,7 @@
 README
 ================
 Francisco Bischoff
-\- 23 Feb 2019
+\- 05 Jun 2019
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -47,7 +47,9 @@ This package provides:
 
 ``` r
 # Basic workflow:
-matrix <- tsmp(data, window_size = 30) %>% find_motif(n_motifs = 3) %>% plot()
+matrix <- tsmp(data, window_size = 30) %>%
+  find_motif(n_motifs = 3) %>%
+  plot()
 
 # SDTS still have a unique way to work:
 model <- sdts_train(data, labels, windows)
@@ -91,6 +93,7 @@ devtools::install_github("franzbischoff/tsmp")
 
   - STAMP (single and multi-thread versions)
   - STOMP (single and multi-thread versions)
+  - STOMPi (On-line version)
   - SCRIMP (single-thread, not for AB-joins yet)
   - Time Series Chains
   - Multivariate STOMP (mSTOMP)
@@ -98,22 +101,28 @@ devtools::install_github("franzbischoff/tsmp")
   - Salient Subsequences search for Multidimensional Space
   - Scalable Dictionary learning for Time Series (SDTS) prediction
   - FLUSS (Fast Low-cost Unipotent Semantic Segmentation)
+  - FLOSS (Fast Low-cost On-line Unipotent Semantic Segmentation)
   - SiMPle-Fast (Fast Similarity Matrix Profile for Music Analysis and
     Exploration)
   - Annotation vectors (e.g., Stop-word MOTIF bias, Actionability bias)
   - FLUSS Arc Plot and SiMPle Arc Plot
   - Exact Detection of Variable Length Motifs (VALMOD)
+  - Subsetting Matrix Profiles (`head()`, `tail()`, `[`, etc.)
   - Misc:
       - MASS v2.0
+      - MASS v3.0
+      - MASS extensions: ADP (Approximate Distance Profile, with PAA)
+      - MASS extensions: WQ (Weighted Query)
+      - MASS extensions: QwG (Query with Gap)
       - Fast moving average
       - Fast moving SD
 
 ## Roadmap
 
   - Profile-Based Shapelet Discovery
+  - MPdist: Matrix Profile Distance
+  - Time Series Snippets
   - GPU-STOMP
-  - Real-time version of previous algorithms (STAMPI, FLOSS, etc.)
-  - MASS Extensions (ADP, WQ, QwG)
 
 ## Other projects with Matrix Profile
 
@@ -134,5 +143,5 @@ devtools::install_github("franzbischoff/tsmp")
 ## Code of Conduct
 
 Please note that this project is released with a [Contributor Code of
-Conduct](CODE_OF_CONDUCT.md). By participating in this project, you
-agree to abide by its terms.
+Conduct](https://github.com/franzbischoff/tsmp/blob/master/CODE_OF_CONDUCT.md).
+By participating in this project, you agree to abide by its terms.

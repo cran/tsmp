@@ -4,7 +4,7 @@
 \alias{fluss_extract}
 \title{FLUSS - Extract Segments}
 \usage{
-fluss_extract(.mpac, num_segments, exclusion_zone = NULL)
+fluss_extract(.mpac, num_segments = 1, exclusion_zone = NULL)
 }
 \arguments{
 \item{.mpac}{a TSMP object of class \code{ArcCount}.}
@@ -38,7 +38,9 @@ Website: \url{https://sites.google.com/site/onlinesemanticsegmentation/}
 Website: \url{http://www.cs.ucr.edu/~eamonn/MatrixProfile.html}
 }
 \seealso{
-Other Semantic Segmentations: \code{\link{fluss_cac}},
-  \code{\link{fluss_score}}, \code{\link{fluss}}
+Other Semantic Segmentations: \code{\link{floss_cac}},
+  \code{\link{floss_extract}}, \code{\link{floss}},
+  \code{\link{fluss_cac}}, \code{\link{fluss_score}},
+  \code{\link{fluss}}
 }
 \concept{Semantic Segmentations}

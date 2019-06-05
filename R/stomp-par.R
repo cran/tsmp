@@ -7,13 +7,16 @@
 #' @describeIn stomp Parallel version.
 
 stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_workers = 2) {
-  args <- list(...)
-  data <- args[[1]]
-  if (length(args) > 1) {
-    query <- args[[2]]
+  argv <- list(...)
+  argc <- length(argv)
+  data <- argv[[1]]
+  if (argc > 1 && !is.null(argv[[2]])) {
+    query <- argv[[2]]
     exclusion_zone <- 0 # don't use exclusion zone for joins
+    join <- TRUE
   } else {
     query <- data
+    join <- FALSE
   }
 
   # transform data into matrix
@@ -25,7 +28,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
       data <- t(data)
     }
   } else {
-    stop("Error: Unknown type of data. Must be: a column matrix or a vector.", call. = FALSE)
+    stop("Unknown type of data. Must be: a column matrix or a vector.", call. = FALSE)
   }
 
   if (is.vector(query)) {
@@ -35,7 +38,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
       query <- t(query)
     }
   } else {
-    stop("Error: Unknown type of query. Must be: a column matrix or a vector.")
+    stop("Unknown type of query. Must be: a column matrix or a vector.")
   }
 
   ez <- exclusion_zone # store original
@@ -46,13 +49,13 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
   num_queries <- query_size - window_size + 1
 
   if (query_size > data_size) {
-    stop("Error: Query must be smaller or the same size as reference data.")
+    stop("Query must be smaller or the same size as reference data.")
   }
   if (window_size > query_size / 2) {
-    stop("Error: Time series is too short relative to desired window size.")
+    stop("Time series is too short relative to desired window size.")
   }
   if (window_size < 4) {
-    stop("Error: `window_size` must be at least 4.")
+    stop("`window_size` must be at least 4.")
   }
 
   # check skip position
@@ -70,31 +73,13 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
   query[is.na(query)] <- 0
   query[is.infinite(query)] <- 0
 
-  data_fft <- matrix(0, (window_size + data_size), 1)
-  data_mean <- matrix(0, matrix_profile_size, 1)
-  data_sd <- matrix(0, matrix_profile_size, 1)
   first_product <- matrix(0, num_queries, 1)
 
   # forward
-  nnpre <- mass_pre(data, data_size, query, query_size, window_size = window_size)
-  data_fft <- nnpre$data_fft
-  data_mean <- nnpre$data_mean
-  data_sd <- nnpre$data_sd
-  query_mean <- nnpre$query_mean
-  query_sd <- nnpre$query_sd
-
+  nn <- dist_profile(data, query, window_size = window_size)
   # reverse
   # This is needed to handle with the join similarity.
-  rnnpre <- mass_pre(query, query_size, data, data_size, window_size = window_size)
-  rdata_fft <- rnnpre$data_fft
-  rdata_mean <- rnnpre$data_mean
-  rdata_sd <- rnnpre$data_sd
-  rquery_mean <- rnnpre$query_mean
-  rquery_sd <- rnnpre$query_sd
-  rnn <- mass(
-    rdata_fft, data[1:window_size], query_size, window_size, rdata_mean,
-    rdata_sd, rquery_mean[1], rquery_sd[1]
-  )
+  rnn <- dist_profile(query, data, window_size = window_size)
 
   first_product[, 1] <- rnn$last_product
 
@@ -113,7 +98,10 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
   }
 
   # seperate index into different job
-  per_work <- max(10, min(250, ceiling(num_queries / 100)))
+  min_per_work <- 200
+  max_per_work <- 10000
+  plateaux_n_works <- 400
+  per_work <- max(min_per_work, min(max_per_work, ceiling(num_queries / plateaux_n_works)))
   n_work <- floor(num_queries / per_work)
   idx_work <- list()
 
@@ -139,6 +127,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
     prog <- function(n) {
       if (!pb$finished) {
         pb$tick(per_work)
+        gc()
       }
     }
   }
@@ -160,12 +149,12 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
     .multicombine = TRUE,
     .options.snow = opts,
     # .errorhandling = 'remove',
-    .export = c("mass", "vars")
+    .export = c("dist_profile", "vars")
   ) %dopar% {
     work_len <- length(idx_work[[i]])
     pro_muls <- matrix(Inf, matrix_profile_size, 1)
-    pro_idxs <- matrix(-1, matrix_profile_size, 1)
-    if (length(args) > 1) {
+    pro_idxs <- matrix(-Inf, matrix_profile_size, 1)
+    if (join) {
       # no RMP and LMP for joins
       pro_muls_right <- pro_muls_left <- NULL
       pro_idxs_right <- pro_idxs_left <- NULL
@@ -186,19 +175,16 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
       query_window <- as.matrix(query[idx:(idx + window_size - 1), 1])
 
       if (j == 1) {
-        nn <- mass(
-          data_fft, query_window, data_size, window_size, data_mean, data_sd,
-          query_mean[idx], query_sd[idx]
-        )
-        dist_pro[, 1] <- nn$distance_profile
-        last_product[, 1] <- nn$last_product
+        nni <- dist_profile(data, query, nn, index = idx)
+        dist_pro[, 1] <- nni$distance_profile
+        last_product[, 1] <- nni$last_product
       } else {
         last_product[2:(data_size - window_size + 1), 1] <- last_product[1:(data_size - window_size), 1] -
           data[1:(data_size - window_size), 1] * drop_value +
           data[(window_size + 1):data_size, 1] * query_window[window_size, 1]
         last_product[1, 1] <- first_product[idx, 1]
-        dist_pro <- 2 * (window_size - (last_product - window_size * data_mean * query_mean[idx]) /
-          (data_sd * query_sd[idx]))
+        dist_pro <- 2 * (window_size - (last_product - window_size * nni$par$data_mean * nni$par$query_mean[idx]) /
+          (nni$par$data_sd * nni$par$query_sd[idx]))
       }
 
       dist_pro <- Re(sqrt(dist_pro))
@@ -211,13 +197,13 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
         dist_pro[exc_st:exc_ed, 1] <- Inf
       }
 
-      dist_pro[data_sd < vars()$eps] <- Inf
-      if (skip_location[idx] || any(query_sd[idx] < vars()$eps)) {
+      dist_pro[nni$par$data_sd < vars()$eps] <- Inf
+      if (skip_location[idx] || any(nni$par$query_sd[idx] < vars()$eps)) {
         dist_pro[] <- Inf
       }
       dist_pro[skip_location] <- Inf
 
-      if (length(args) == 1) {
+      if (!join) {
         # no RMP and LMP for joins
         # left matrix_profile
         ind <- (dist_pro[idx:matrix_profile_size] < pro_muls_left[idx:matrix_profile_size])
@@ -248,8 +234,8 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
   }
 
   matrix_profile <- matrix(Inf, matrix_profile_size, 1)
-  profile_index <- matrix(-1, matrix_profile_size, 1)
-  if (length(args) > 1) {
+  profile_index <- matrix(-Inf, matrix_profile_size, 1)
+  if (join) {
     # no RMP and LMP for joins
     left_matrix_profile <- right_matrix_profile <- NULL
     left_profile_index <- right_profile_index <- NULL
@@ -263,7 +249,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
     matrix_profile[ind] <- batch[[i]]$pro_muls[ind]
     profile_index[ind] <- batch[[i]]$pro_idxs[ind]
 
-    if (length(args) == 1) {
+    if (!join) {
       # no RMP and LMP for joins
       ind <- (batch[[i]]$pro_muls_left < left_matrix_profile)
       left_matrix_profile[ind] <- batch[[i]]$pro_muls_left[ind]
@@ -290,6 +276,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
       ez = ez
     )
     class(obj) <- "MatrixProfile"
+    attr(obj, "join") <- join
     obj
   })
 }

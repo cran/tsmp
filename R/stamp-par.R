@@ -6,14 +6,17 @@
 #'
 #' @describeIn stamp Parallel version.
 
-stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size = Inf, n_workers = 2) {
-  args <- list(...)
-  data <- args[[1]]
-  if (length(args) > 1) {
-    query <- args[[2]]
+stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_size = Inf, n_workers = 2, weight = NULL) {
+  argv <- list(...)
+  argc <- length(argv)
+  data <- argv[[1]]
+  if (argc > 1 && !is.null(argv[[2]])) {
+    query <- argv[[2]]
     exclusion_zone <- 0 # don't use exclusion zone for joins
+    join <- TRUE
   } else {
     query <- data
+    join <- FALSE
   }
 
   # transform data into matrix
@@ -25,7 +28,7 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
       data <- t(data)
     }
   } else {
-    stop("Error: Unknown type of data. Must be: a column matrix or a vector.")
+    stop("Unknown type of data. Must be: a column matrix or a vector.")
   }
 
   if (is.vector(query)) {
@@ -35,7 +38,7 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
       query <- t(query)
     }
   } else {
-    stop("Error: Unknown type of query. Must be: a column matrix or a vector.")
+    stop("Unknown type of query. Must be: a column matrix or a vector.")
   }
 
   ez <- exclusion_zone # store original
@@ -46,10 +49,10 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
   num_queries <- query_size - window_size + 1
 
   if (window_size > query_size / 2) {
-    stop("Error: Time series is too short relative to desired window size.")
+    stop("Time series is too short relative to desired window size.")
   }
   if (window_size < 4) {
-    stop("Error: `window_size` must be at least 4.")
+    stop("`window_size` must be at least 4.")
   }
 
   # check skip position
@@ -68,9 +71,9 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
   query[is.infinite(query)] <- 0
 
   matrix_profile <- matrix(Inf, matrix_profile_size, 1)
-  profile_index <- matrix(-1, matrix_profile_size, 1)
+  profile_index <- matrix(-Inf, matrix_profile_size, 1)
 
-  if (length(args) > 1) {
+  if (join) {
     # no RMP and LMP for joins
     left_matrix_profile <- right_matrix_profile <- NULL
     left_profile_index <- right_profile_index <- NULL
@@ -132,10 +135,15 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
       ez = ez
     )
     class(obj) <- "MatrixProfile"
+    attr(obj, "join") <- join
     obj
   }), TRUE)
 
-  pre <- mass_pre(data, data_size, query, query_size, window_size = window_size)
+  if (is.null(weight)) {
+    pre <- dist_profile(data, query, window_size = window_size)
+  } else {
+    pre <- dist_profile(data, query, window_size = window_size, method = "weighted", weight = weight)
+  }
 
   j <- NULL # CRAN NOTE fix
   `%dopar%` <- foreach::`%dopar%` # CRAN NOTE fix
@@ -148,14 +156,18 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
       .multicombine = TRUE,
       .options.snow = opts,
       # .errorhandling = 'remove',
-      .export = c("mass", "vars")
+      .export = c("dist_profile", "vars")
     ) %dopar% {
       res <- NULL
 
       index <- k * cols + j
       if (index <= ssize) {
         i <- order[index]
-        nn <- mass(pre$data_fft, query[i:(i + window_size - 1)], data_size, window_size, pre$data_mean, pre$data_sd, pre$query_mean[i], pre$query_sd[i])
+        if (is.null(weight)) {
+          nn <- dist_profile(data, query, pre, index = i)
+        } else {
+          nn <- dist_profile(data, query, pre, index = i, method = "weighted")
+        }
         distance_profile <- Re(sqrt(nn$distance_profile))
 
         # apply exclusion zone
@@ -181,7 +193,7 @@ stamp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, s_s
       curr <- batch[[i]]$i
 
       if (!is.null(curr)) {
-        if (length(args) == 1) {
+        if (!join) {
           # no RMP and LMP for joins
           # left matrix_profile
           ind <- (batch[[i]]$dp[curr:matrix_profile_size] < left_matrix_profile[curr:matrix_profile_size])
