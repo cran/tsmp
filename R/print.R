@@ -1,7 +1,7 @@
 #' Prints a Valmod Matrix Profile
 #'
 #' @param x a TSMP object of class `Valmod`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -28,7 +28,7 @@ print.Valmod <- function(x, ...) {
 #' Prints a Matrix Profile
 #'
 #' @param x a TSMP object of class `MatrixProfile`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -55,7 +55,7 @@ print.MatrixProfile <- function(x, ...) {
 #' Prints a Multidimensional Matrix Profile
 #'
 #' @param x a TSMP object of class `MultiMatrixProfile`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -83,10 +83,35 @@ print.MultiMatrixProfile <- function(x, ...) {
   }
 }
 
+#' Prints a PMP
+#'
+#' @param x a TSMP object of class `PMP`.
+#' @param \dots additional arguments ignored.
+#' @export
+#' @keywords internal
+#' @noRd
+
+print.PMP <- function(x, ...) {
+  cat("Pan-Matrix Profile\n")
+  cat("------------------\n")
+
+  cat("Number of profiles =", length(x$pmp), "\n")
+  cat("Window sizes = from", min(x$w), "to", max(x$w), "\n")
+  cat("Exclusion zone =", x$ez, "\n")
+
+  if (!is.null(x$data)) {
+    set <- 1
+    obs <- length(x$data[[1]])
+    cat(
+      "Contains", set, ifelse(set > 1, "sets", "set"), "of data with", obs, "observations\n"
+    )
+  }
+}
+
 #' Prints a SiMPle Matrix Profile
 #'
 #' @param x a TSMP object of class `SimpleMatrixProfile`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -114,7 +139,7 @@ print.SimpleMatrixProfile <- function(x, ...) {
 #' Prints a CAC profile
 #'
 #' @param x a TSMP object of class `ArcCount`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -140,7 +165,7 @@ print.ArcCount <- function(x, ...) {
 #' Prints a FLOSS
 #'
 #' @param x a TSMP object of class `Floss`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -160,7 +185,7 @@ print.Floss <- function(x, ...) {
 #' Prints a FLUSS
 #'
 #' @param x a TSMP object of class `Fluss`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -179,7 +204,7 @@ print.Fluss <- function(x, ...) {
 #' Prints a TS Chain
 #'
 #' @param x a TSMP object of class `Chain`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -193,7 +218,7 @@ print.Chain <- function(x, ...) {
   cat("\nChain\n")
   cat("-----\n")
 
-  cat("Chains founded =", length(x$chain$chains), "\n")
+  cat("Chains found =", length(x$chain$chains), "\n")
   cat("Best Chain size =", length(x$chain$best), "\n")
   cat("Best Chain indexes =", x$chain$best, "\n")
 }
@@ -201,7 +226,7 @@ print.Chain <- function(x, ...) {
 #' Prints Discords
 #'
 #' @param x a TSMP object of class `Discord`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -210,13 +235,15 @@ print.Discord <- function(x, ...) {
     print.MatrixProfile(x, ...)
   } else if (any(class(x) %in% "MultiMatrixProfile")) {
     print.MultiMatrixProfile(x, ...)
+  } else if (any(class(x) %in% "PMP")) {
+    print.PMP(x, ...)
   }
 
   cat("\nDiscord\n")
   cat("-------\n")
 
   dis_len <- length(x$discord$discord_idx)
-  cat("Discords founded =", dis_len, "\n")
+  cat("Discords found =", dis_len, "\n")
 
   indexes <- NULL
   for (i in seq_len(dis_len)) {
@@ -232,10 +259,28 @@ print.Discord <- function(x, ...) {
   cat("Discords neighbors =", neighbors, "\n")
 }
 
+#' Prints Snippets
+#'
+#' @param x a TSMP object of class `Snippet`.
+#' @param \dots additional arguments ignored.
+#' @export
+#' @keywords internal
+#' @noRd
+print.Snippet <- function(x, ...) {
+  cat("\nSnippet\n")
+  cat("-------\n")
+
+  snip_len <- length(x$snippet_idx)
+  cat("Snippets found =", snip_len, "\n")
+  cat("Snippets indexes =", x$snippet_idx, "\n")
+  cat("Snippets fractions =", sprintf("%1.2f%%", 100 * x$snippet_frac), "\n")
+  cat("Snippet size =", x$snippet_size, "\n")
+}
+
 #' Prints Motifs
 #'
 #' @param x a TSMP object of class `Motif`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -249,6 +294,8 @@ print.Motif <- function(x, ...) {
     print.MatrixProfile(x, ...)
   } else if ("MultiMatrixProfile" %in% class(x)) {
     print.MultiMatrixProfile(x, ...)
+  } else if (any(class(x) %in% "PMP")) {
+    print.PMP(x, ...)
   }
 
   if (valmod) {
@@ -260,7 +307,7 @@ print.Motif <- function(x, ...) {
   }
 
   pairs_len <- length(x$motif$motif_idx)
-  cat("Motif pairs founded =", pairs_len, "\n")
+  cat("Motif pairs found =", pairs_len, "\n")
 
   indexes <- NULL
   for (i in seq_len(pairs_len)) {
@@ -287,7 +334,7 @@ print.Motif <- function(x, ...) {
 #' Prints Multidimensional Motifs
 #'
 #' @param x a TSMP object of class `MultiMotif`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -302,7 +349,7 @@ print.MultiMotif <- function(x, ...) {
   cat("----------------------\n")
 
   pairs_len <- length(x$motif$motif_idx)
-  cat("Motif pairs founded =", pairs_len, "\n")
+  cat("Motif pairs found =", pairs_len, "\n")
 
   indexes <- NULL
   for (i in seq_len(pairs_len)) {
@@ -320,7 +367,7 @@ print.MultiMotif <- function(x, ...) {
 #' Prints Salient subsequences summary
 #'
 #' @param x a TSMP object of class `Salient`.
-#' @param ... additional arguments ignored.
+#' @param \dots additional arguments ignored.
 #' @export
 #' @keywords internal
 #' @noRd
@@ -336,6 +383,6 @@ print.Salient <- function(x, ...) {
 
   salient_len <- nrow(x$salient$indexes)
 
-  cat("Subsequences founded =", salient_len, "\n")
+  cat("Subsequences found =", salient_len, "\n")
   cat("Bitsizes tested =", x$salient$bits, "\n")
 }

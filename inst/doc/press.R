@@ -1,4 +1,4 @@
-## ----setup, include = FALSE----------------------------------------------
+## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -7,11 +7,11 @@ knitr::opts_chunk$set(
 ## ----Figure 1, echo=FALSE, fig.cap="Figure 1: Distance Matrix and its Matrix Profile.", out.width=350, out.height=350, message=FALSE, warning=FALSE----
 knitr::include_graphics("mp_1.png")
 
-## ----eval=FALSE, include=TRUE--------------------------------------------
+## ----eval=FALSE, include=TRUE-------------------------------------------------
 #  set.seed(2018)
 #  data <- cumsum(sample(c(-1, 1), 40000, TRUE))
 
-## ----table1, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'----
+## ----table1, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'--------
 tabl <- "
 |  | Elapsed Time^[These are results using only R code, no low-level C code optimizations] | Data size | Window size | Threads |
 |-----------|:------------:|:---------:|:-----------:|:-------:|

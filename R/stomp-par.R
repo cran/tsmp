@@ -6,7 +6,8 @@
 #'
 #' @describeIn stomp Parallel version.
 
-stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_workers = 2) {
+stomp_par <- function(..., window_size, exclusion_zone = getOption("tsmp.exclusion_zone", 1 / 2),
+                      verbose = getOption("tsmp.verbose", 2), n_workers = 2) {
   argv <- list(...)
   argc <- length(argv)
   data <- argv[[1]]
@@ -51,7 +52,7 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
   if (query_size > data_size) {
     stop("Query must be smaller or the same size as reference data.")
   }
-  if (window_size > query_size / 2) {
+  if (window_size > ceiling(query_size / 2)) {
     stop("Time series is too short relative to desired window size.")
   }
   if (window_size < 4) {
@@ -187,7 +188,8 @@ stomp_par <- function(..., window_size, exclusion_zone = 1 / 2, verbose = 2, n_w
           (nni$par$data_sd * nni$par$query_sd[idx]))
       }
 
-      dist_pro <- Re(sqrt(dist_pro))
+      dist_pro[dist_pro < 0] <- 0
+      dist_pro <- sqrt(dist_pro)
       drop_value <- query_window[1, 1]
 
       # apply exclusion zone

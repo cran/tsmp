@@ -7,11 +7,11 @@
 find_chains(.mp)
 }
 \arguments{
-\item{.mp}{a TSMP object of class \code{MatrixProfile}.}
+\item{.mp}{a \code{MatrixProfile} object.}
 }
 \value{
 Returns the input \code{.mp} object with a new name \code{chain}. It contains: \code{chains}, a \code{list}
-of chains founded with more than 2 patterns and \code{best} with the best one.
+of chains found with more than 2 patterns and \code{best} with the best one.
 }
 \description{
 Time Series Chains is a new primitive for time series data mining.
@@ -25,7 +25,7 @@ mp <- find_chains(mp)
 \references{
 \itemize{
 \item Zhu Y, Imamura M, Nikovski D, Keogh E. Matrix Profile VII: Time Series Chains: A
-New Primitive for Time Series Data Mining. Knowl Inf Syst. 2018 Jun 2;1–27.
+New Primitive for Time Series Data Mining. Knowl Inf Syst. 2018 Jun 2;1-27.
 }
 
 Website: \url{https://sites.google.com/site/timeserieschain/}

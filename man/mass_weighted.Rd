@@ -4,8 +4,17 @@
 \alias{mass_weighted}
 \title{Calculates the distance profile using MASS_WEIGHTED algorithm}
 \usage{
-mass_weighted(query_window, window_size, data_fft, data_size, data_mean,
-  data_sd, data_pre, weight, ...)
+mass_weighted(
+  query_window,
+  window_size,
+  data_fft,
+  data_size,
+  data_mean,
+  data_sd,
+  data_pre,
+  weight,
+  ...
+)
 }
 \arguments{
 \item{query_window}{a \code{vector} of \code{numeric}. Query window.}
@@ -24,7 +33,7 @@ mass_weighted(query_window, window_size, data_fft, data_size, data_mean,
 
 \item{weight}{a \code{vector} of \code{numeric} with the same length of the \code{window_size}.}
 
-\item{...}{just a placeholder to catch unused parameters.}
+\item{\dots}{just a placeholder to catch unused parameters.}
 }
 \value{
 Returns the \code{distance_profile} for the given query and the \code{last_product} for STOMP
@@ -38,8 +47,10 @@ Series Subsequences under Euclidean Distance and Correlation Coefficient.
 w <- mp_toy_data$sub_len
 ref_data <- mp_toy_data$data[, 1]
 query_data <- mp_toy_data$data[, 1]
-weight <- c(rep(1, mp_toy_data$sub_len / 3), rep(0.5, mp_toy_data$sub_len / 3),
- rep(1, mp_toy_data$sub_len / 3))
+weight <- c(
+  rep(1, mp_toy_data$sub_len / 3), rep(0.5, mp_toy_data$sub_len / 3),
+  rep(1, mp_toy_data$sub_len / 3)
+)
 
 pre <- tsmp:::mass_pre_w(ref_data, query_data, w, weight)
 

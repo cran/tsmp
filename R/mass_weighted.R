@@ -11,7 +11,7 @@
 #' @param data_pre precomputed weighted data product.
 #' @param weight a `vector` of `numeric` with the same length of the `window_size`.
 #' @param data_sd precomputed data moving standard deviation.
-#' @param ... just a placeholder to catch unused parameters.
+#' @param \dots just a placeholder to catch unused parameters.
 #'
 #' @return Returns the `distance_profile` for the given query and the `last_product` for STOMP
 #'   algorithm.
@@ -28,8 +28,10 @@
 #' w <- mp_toy_data$sub_len
 #' ref_data <- mp_toy_data$data[, 1]
 #' query_data <- mp_toy_data$data[, 1]
-#' weight <- c(rep(1, mp_toy_data$sub_len / 3), rep(0.5, mp_toy_data$sub_len / 3),
-#'  rep(1, mp_toy_data$sub_len / 3))
+#' weight <- c(
+#'   rep(1, mp_toy_data$sub_len / 3), rep(0.5, mp_toy_data$sub_len / 3),
+#'   rep(1, mp_toy_data$sub_len / 3)
+#' )
 #'
 #' pre <- tsmp:::mass_pre_w(ref_data, query_data, w, weight)
 #'
