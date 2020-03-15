@@ -1,7 +1,7 @@
 README
 ================
 Francisco Bischoff
-\- 28 Feb 2020
+\- 12 Mar 2020
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -10,7 +10,7 @@ Francisco Bischoff
 # Time Series with Matrix Profile
 
 <!-- badges: start -->
-[![Packagist](https://img.shields.io/badge/license-GPL--3-brightgreen.svg)](https://choosealicense.com/licenses/gpl-3.0/)
+[![Packagist](https://img.shields.io/badge/License-Apache--2.0-brightgreen.svg)](https://choosealicense.com/licenses/apache-2.0/)
 [![lifecycle](https://img.shields.io/badge/lifecycle-stable-brightgreen.svg)](https://www.tidyverse.org/lifecycle/#stable)
 [![CRAN
 version](http://www.r-pkg.org/badges/version/tsmp)](https://cran.r-project.org/package=tsmp)
@@ -153,6 +153,10 @@ Our next step unifying the Matrix Profile implementation in several
 programming languages.
 
 Visit: [Matrix Profile Foundation](https://matrixprofile.org)
+
+## Package dependencies
+
+![](man/figures/dependency_plot-1.png)<!-- -->
 
 ## Code of Conduct
 
