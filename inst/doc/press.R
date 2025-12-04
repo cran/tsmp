@@ -8,8 +8,8 @@ knitr::opts_chunk$set(
 knitr::include_graphics("mp_1.png")
 
 ## ----eval=FALSE, include=TRUE-------------------------------------------------
-#  set.seed(2018)
-#  data <- cumsum(sample(c(-1, 1), 40000, TRUE))
+# set.seed(2018)
+# data <- cumsum(sample(c(-1, 1), 40000, TRUE))
 
 ## ----table1, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'--------
 tabl <- "
