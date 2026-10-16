@@ -13,13 +13,15 @@ knitr::include_graphics("mp_1.png")
 
 ## ----table1, echo=FALSE, message=FALSE, warnings=FALSE, results='asis'--------
 tabl <- "
-|  | Elapsed Time^[These are results using only R code, no low-level C code optimizations] | Data size | Window size | Threads |
+|  | Elapsed Time^[Results powered by the high-performance 'matrixprofiler' C++ engine] | Data size | Window size | Threads |
 |-----------|:------------:|:---------:|:-----------:|:-------:|
-| `scrimp()` | 45.30s | 40000 | 1000 | 1 |
-| `stomp_par()` | 52.72s | 40000 | 1000 | 8 |
-| `stomp()` | 136.01s | 40000 | 1000 | 1 |
-| `stamp_par()` | 140.25s | 40000 | 1000 | 8 |
-| `stamp()` | 262.03s | 40000 | 1000 | 1 |
+| `mpx` (parallel) | 0.32s | 40000 | 1000 | 8 |
+| `mpx` | 1.02s | 40000 | 1000 | 1 |
+| `stomp_par()` | 2.45s | 40000 | 1000 | 8 |
+| `scrimp()` | 13.10s | 40000 | 1000 | 1 |
+| `stamp_par()` | 27.43s | 40000 | 1000 | 8 |
+| `stomp()` | 62.91s | 40000 | 1000 | 1 |
+| `stamp()` | 122.63s | 40000 | 1000 | 1 |
 "
 cat(tabl) # output the table in a format good for HTML/PDF/docx conversion
 

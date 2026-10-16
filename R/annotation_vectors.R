@@ -22,22 +22,21 @@ av_zerocrossing <- function(.mp, data, apply = FALSE) {
     stop("Function not implemented for objects of class `Valmod`.")
   }
 
+  # validate input ----
+  checkmate::qassert(.mp, "L+")
   if (missing(data) && !is.null(.mp$data)) {
-    data <- .mp$data[[1L]]
+    data <- convert_data(.mp$data[[1L]])
   }
+  checkmate::qassert(data, "N+")
+  window_size <- checkmate::qassert(.mp$w, c("0", "X+[4,)"))
+  apply <- checkmate::qassert(apply, "B1")
 
-  data <- as.matrix(data)
-  data <- as.matrix(data[, 1L])
-  data <- znorm(data)
-  profile_size <- length(.mp$mp)
-  av <- matrix(0L, profile_size, 1L)
-  for (j in 1L:profile_size) {
-    av[j] <- zero_crossings(data[j:(j + .mp$w - 1L), ])
-  }
+  # Create the AV ----
 
-  av <- zero_one_norm(av)
+  av <- matrixprofiler::zero_crossing(data, window_size)
+  .mp$av <- matrixprofiler::normalize(av, 0, 1)
 
-  .mp$av <- av
+  # Store information ----
 
   class(.mp) <- update_class(class(.mp), "AnnotationVector")
 
@@ -70,21 +69,27 @@ av_complexity <- function(.mp, data, dilution_factor = 0, apply = FALSE) {
     stop("Function not implemented for objects of class `Valmod`.")
   }
 
+  # validate input ----
+  checkmate::qassert(.mp, "L+")
   if (missing(data) && !is.null(.mp$data)) {
-    data <- .mp$data[[1]]
+    data <- convert_data(.mp$data[[1L]])
   }
+  checkmate::qassert(data, "N+")
+  window_size <- checkmate::qassert(.mp$w, c("0", "X+[4,)"))
+  checkmate::qassert(dilution_factor, "N1[0,)")
+  apply <- checkmate::qassert(apply, "B1")
 
-  data <- as.matrix(data)
-  data <- as.matrix(data[, 1])
-  data <- znorm(data)
+  # Create the AV ----
+
+  data <- matrixprofiler::znorm(data)
   profile_size <- length(.mp$mp)
-  av <- matrix(0, profile_size, 1)
+  av <- vector(mode = "numeric", profile_size)
 
   for (j in 1:profile_size) {
-    av[j] <- complexity(data[j:(j + .mp$w - 1)])
+    av[j] <- matrixprofiler::complexity(data[j:(j + .mp$w - 1)])
   }
 
-  av <- zero_one_norm(av) # zero-one normalize the av
+  av <- matrixprofiler::normalize(av, 0, 1) # zero-one normalize the av
 
   # Select dilution factor, 0 is no dilution,
   # larger numbers are more dilution
@@ -92,6 +97,8 @@ av_complexity <- function(.mp, data, dilution_factor = 0, apply = FALSE) {
   av <- av / (dilution_factor + 1L)
 
   .mp$av <- av
+
+  # Store information ----
 
   class(.mp) <- update_class(class(.mp), "AnnotationVector")
 
@@ -101,7 +108,6 @@ av_complexity <- function(.mp, data, dilution_factor = 0, apply = FALSE) {
 
   return(.mp)
 }
-
 
 #' Computes the annotation vector that suppresses motion artifacts
 #'
@@ -124,18 +130,23 @@ av_motion_artifact <- function(.mp, data, apply = FALSE) {
     stop("Function not implemented for objects of class `Valmod`.")
   }
 
+  # validate input ----
+  checkmate::qassert(.mp, "L+")
   if (missing(data) && !is.null(.mp$data)) {
-    data <- .mp$data[[1]]
+    data <- convert_data(.mp$data[[1L]])
   }
+  checkmate::qassert(data, "N+")
+  window_size <- checkmate::qassert(.mp$w, c("0", "X+[4,)"))
+  apply <- checkmate::qassert(apply, "B1")
 
-  data <- as.matrix(data)
-  data <- as.matrix(data[, 1])
-  data <- znorm(data)
+  # Create the AV ----
+
+  data <- matrixprofiler::znorm(data)
   profile_size <- length(.mp$mp)
-  av <- matrix(0L, profile_size, 1)
+  av <- vector(mode = "numeric", profile_size)
 
   for (i in 1:profile_size) {
-    s <- data[i:(i + .mp$w - 1L), ]
+    s <- data[i:(i + .mp$w - 1L)]
     av[i] <- stats::sd(s)
   }
 
@@ -147,6 +158,8 @@ av_motion_artifact <- function(.mp, data, apply = FALSE) {
 
   .mp$av <- cav
 
+  # Store information ----
+
   class(.mp) <- update_class(class(.mp), "AnnotationVector")
 
   if (apply == TRUE) {
@@ -155,6 +168,7 @@ av_motion_artifact <- function(.mp, data, apply = FALSE) {
 
   return(.mp)
 }
+
 
 #' Computes the annotation vector that suppresses stop-word motifs
 #'
@@ -185,41 +199,50 @@ av_stop_word <- function(.mp, data, stop_word_loc, exclusion_zone = NULL, thresh
     stop("Function not implemented for objects of class `Valmod`.")
   }
 
+  # validate input ----
+  checkmate::qassert(.mp, "L+")
   if (missing(data) && !is.null(.mp$data)) {
-    data <- .mp$data[[1L]]
+    data <- convert_data(.mp$data[[1L]])
   }
+  checkmate::qassert(data, "N+")
+  window_size <- checkmate::qassert(.mp$w, c("0", "X+[4,)"))
+  stop_word_loc <- checkmate::qassert(stop_word_loc, "X+[0,)")
+  checkmate::qassert(threshold, "N1(0,1]")
+  apply <- checkmate::qassert(apply, "B1")
 
   if (is.null(exclusion_zone)) {
-    exclusion_zone <- .mp$ez
+    exclusion_zone <- checkmate::qassert(.mp$ez, "n1[0,)")
+  } else {
+    checkmate::qassert(exclusion_zone, "n1[0,)")
   }
 
-  data <- as.matrix(data)
-  data <- as.matrix(data[, 1])
-  data <- znorm(data)
-  stop_word <- data[stop_word_loc:(stop_word_loc + .mp$w - 1L), ]
+  # Create the AV ----
 
+  data <- matrixprofiler::znorm(data)
+  stop_word <- data[stop_word_loc:(stop_word_loc + window_size - 1L)]
   profile_size <- length(.mp$mp)
-
-  av <- matrix(0L, profile_size, 1L)
+  av <- vector(mode = "numeric", profile_size)
 
   for (i in 1L:profile_size) {
-    s <- data[i:(i + .mp$w - 1L), ]
-    av[i, ] <- diff2(s, stop_word)
+    s <- data[i:(i + .mp$w - 1L)]
+    av[i] <- as.numeric(diff2(s, stop_word)) # TODO: Revise this function diff2
   }
 
-  av <- zero_one_norm(av)
+  av <- matrixprofiler::normalize(av, 0, 1) # zero-one normalize the av
 
   index <- which(av <= threshold)
 
   for (i in seq_len(length(index))) {
     if (index[i] < exclusion_zone) {
-      av[(index[i] - index[i] + 1):min((index[i] + exclusion_zone - 1L), profile_size), ] <- 0L
+      av[(index[i] - index[i] + 1):min((index[i] + exclusion_zone - 1L), profile_size)] <- 0L
     } else {
-      av[(index[i] - exclusion_zone + 1L):min((index[i] + exclusion_zone - 1L), profile_size), ] <- 0L
+      av[(index[i] - exclusion_zone + 1L):min((index[i] + exclusion_zone - 1L), profile_size)] <- 0L
     }
   }
 
   .mp$av <- av
+
+  # Store information ----
 
   class(.mp) <- update_class(class(.mp), "AnnotationVector")
 
@@ -229,6 +252,7 @@ av_stop_word <- function(.mp, data, stop_word_loc, exclusion_zone = NULL, thresh
 
   return(.mp)
 }
+
 
 #' Computes the annotation vector that suppresses hard-limited artifacts
 #'
@@ -251,28 +275,35 @@ av_hardlimit_artifact <- function(.mp, data, apply = FALSE) {
     stop("Function not implemented for objects of class `Valmod`.")
   }
 
+  # validate input ----
+  checkmate::qassert(.mp, "L+")
   if (missing(data) && !is.null(.mp$data)) {
-    data <- .mp$data[[1L]]
+    data <- convert_data(.mp$data[[1L]])
   }
+  checkmate::qassert(data, "N+")
+  window_size <- checkmate::qassert(.mp$w, c("0", "X+[4,)"))
+  apply <- checkmate::qassert(apply, "B1")
 
-  data <- as.matrix(data)
-  data <- as.matrix(data[, 1L])
-  data <- znorm(data)
+  # Create the AV ----
+
+  data <- matrixprofiler::znorm(data)
   max <- max(data)
   min <- min(data)
 
   profile_size <- length(.mp$mp)
-  av <- matrix(0, profile_size, 1L)
+  av <- vector(mode = "numeric", profile_size)
 
   for (i in 1L:profile_size) {
-    s <- data[i:(i + .mp$w - 1L), ]
-    av[i, ] <- length(s[s == max | s == min])
+    s <- data[i:(i + window_size - 1L)]
+    av[i] <- length(s[s == max | s == min])
   }
 
-  av <- zero_one_norm(av) # zero-one normalize the av
-  av <- 1L - av
+  av <- matrixprofiler::normalize(av, 0, 1) # zero-one normalize the av
+  av <- 1 - av
 
   .mp$av <- av
+
+  # Store information ----
 
   class(.mp) <- update_class(class(.mp), "AnnotationVector")
 
@@ -282,6 +313,7 @@ av_hardlimit_artifact <- function(.mp, data, apply = FALSE) {
 
   return(.mp)
 }
+
 
 #' Corrects the matrix profile using an annotation vector
 #'
